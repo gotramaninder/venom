@@ -31,9 +31,11 @@ if env_file.exists():
 
 def collect_keys(prefix):
     # Exact env names only: GEMINI_API_KEY, GEMINI_API_KEY_2, etc.
-    return [value.strip() for name, value in sorted(os.environ.items())
-            if name == prefix or re.fullmatch(re.escape(prefix) + r"_\d+", name)
-            if value.strip() and "yahan" not in value.lower()]
+    names = [name for name, value in os.environ.items()
+             if (name == prefix or re.fullmatch(re.escape(prefix) + r"_\d+", name))
+             and value.strip() and "yahan" not in value.lower()]
+    names.sort(key=lambda name: (0, 0) if name == prefix else (1, int(name.rsplit("_", 1)[1])))
+    return [os.environ[name].strip() for name in names]
 
 # Free-first automatic provider chain. Duplicate keys in one project do not multiply quota.
 PROVIDERS = ([( "gemini", k) for k in collect_keys("GEMINI_API_KEY")] +
