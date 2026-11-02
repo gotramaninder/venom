@@ -37,13 +37,13 @@ PIN = os.getenv("VENOM_PIN", "").strip()
 TOKEN = secrets.token_hex(16)
 UP_DIR = V.OUT_DIR / "uploads"
 UP_DIR.mkdir(exist_ok=True)
-SESS_F = BASE / ".sessions.json"
-PUSH_F = BASE / ".push.json"
+SESS_F = V.DATA_DIR / ".sessions.json"
+PUSH_F = V.DATA_DIR / ".push.json"
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 300 * 1024 * 1024
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
-logging.basicConfig(filename=str(BASE / "venom.log"), level=logging.INFO,
+logging.basicConfig(filename=str(V.LOG_DIR / "venom.log"), level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(threadName)s %(message)s")
 
 LOCK = threading.Lock()
@@ -353,9 +353,9 @@ def status():
     month = datetime.now().strftime("%Y-%m")
     got = sum(p["amount"] for c in clients for p in c.get("payments", []) if p["date"].startswith(month))
     pend = sum(max(V.num(c.get("price")) - V.num(c.get("paid")), 0) for c in clients)
-    leads = V.load_json(BASE / "leads.json", [])
-    queue = V.load_json(BASE / "queue.json", [])
-    briefs = V.load_json(BASE / "briefs.json", [])
+    leads = V.load_json(V.DATA_DIR / "leads.json", [])
+    queue = V.load_json(V.DATA_DIR / "queue.json", [])
+    briefs = V.load_json(V.DATA_DIR / "briefs.json", [])
     now = datetime.now()
     meets = sorted([m for m in V.load_meetings() if datetime.strptime(m["when"], "%Y-%m-%d %H:%M") >= now], key=lambda m: m["when"])
     stats = {}
