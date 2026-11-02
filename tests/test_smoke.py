@@ -44,3 +44,37 @@ def test_empty_command_is_safe():
     )
     assert response.status_code == 200
     assert response.get_json()["replies"] == []
+
+
+
+def test_reply_capture_does_not_share_global_buffer():
+    module = load_app()
+    captured = module._capture_replies(lambda: module._speak("isolated reply"))
+    assert captured == [{"say": "isolated reply", "show": "isolated reply"}]
+
+
+def test_status_tolerates_corrupt_local_records(monkeypatch):
+    module = load_app()
+    original_load_json = module.V.load_json
+
+    def fake_load_json(path, default):
+        if path == module.V.CLIENT_FILE:
+            return [{"payments": [None, {}], "price": "not-a-number", "paid": None}]
+        if str(path).endswith("leads.json"):
+            return [None, "bad-record"]
+        if str(path).endswith("queue.json"):
+            return [None]
+        if str(path).endswith("briefs.json"):
+            return [None]
+        return original_load_json(path, default)
+
+    monkeypatch.setattr(module.V, "load_json", fake_load_json)
+    monkeypatch.setattr(module.V, "load_meetings", lambda: [{"when": "broken"}, None])
+    client = module.app.test_client()
+    response = client.get(
+        "/api/status",
+        base_url="http://127.0.0.1:8765",
+        headers={"X-Venom-Token": module.TOKEN},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["meeting"] == ""
