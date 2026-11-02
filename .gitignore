@@ -1,0 +1,23 @@
+# Secrets and local user data
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+history.json
+clients.json
+leads.json
+queue.json
+briefs.json
+meetings.json
+rates.json
+notes.txt
+.sessions.json
+.push.json
+.integrity.json
+.security_baseline.json
+venom.log
+outputs/
+uploads/
+__pycache__/
+*.py[cod]
