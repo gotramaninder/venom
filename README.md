@@ -4,7 +4,7 @@
 
 ## Bas ye steps follow karo
 
-1. GitHub se ZIP download karo aur **Extract All** karo.
+1. GitHub se ZIP download karo aur **Extract All** karke ek hi naya folder banao, jaise `C:\\VENOM_FINAL`. Purane VENOM folders ko abhi delete mat karna; woh backup rahenge.
 2. Extracted folder ke andar `1_SETUP_VENOM.bat` double-click karo. Ye isolated Python environment banayega, core packages install karega aur API wizard kholega.
 3. Agar purane VENOM folder mein data/settings hain, `IMPORT_OLD_VENOM.bat` double-click karo aur purane VENOM folder ka full path paste karo. Ye existing values ko overwrite kiye bina missing `.env`, client records, leads, meetings, chat history aur outputs import karega. Purana folder untouched rahega.
 4. Agar old API settings import hui hain, `3_API_SETUP.bat` dobara chala kar missing provider keys add karo.
