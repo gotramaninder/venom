@@ -256,9 +256,7 @@ def index():
         return redirect("/login") if PIN else abort(403)
     hud_file = BASE / "static" / "jarvis.html"
     if not hud_file.is_file():
-        hud_file = BASE / "jarvis.html"  # backward-compatible fallback for older folder layouts
-    if not hud_file.is_file():
-        app.logger.error("HUD file missing: checked %s and %s", BASE / "static" / "jarvis.html", BASE / "jarvis.html")
+        app.logger.error("VENOM HUD file missing: %s", hud_file)
         abort(500, description="VENOM HUD file missing. Restore static/jarvis.html from the repository.")
     html = hud_file.read_text(encoding="utf-8").replace("__TOKEN__", TOKEN)
     return Response(html, mimetype="text/html", headers={"Cache-Control": "no-store"})
