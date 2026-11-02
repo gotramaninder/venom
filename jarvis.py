@@ -405,7 +405,7 @@ def morning_push():
         return
     clients = V.load_json(V.CLIENT_FILE, [])
     pend = sum(max(V.num(c.get("price")) - V.num(c.get("paid")), 0) for c in clients)
-    leads = sum(1 for x in V.load_json(BASE / "leads.json", []) if x.get("status") == "new")
+    leads = sum(1 for x in V.load_json(V.DATA_DIR / "leads.json", []) if x.get("status") == "new")
     today = [m for m in V.load_meetings() if m["when"].startswith(day)]
     msg = (f"Good morning sir. Aaj {len(today)} meeting" + (": " + ", ".join(m["title"] for m in today) if today else "") +
            f". Pending payment ₹{V.inr(pend)}. Naye leads {leads}.")
