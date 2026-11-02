@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04050a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.png?s=180">
+<title>VENOM</title>
+<style>
+:root{--bg:#04050a;--fg:#e9eef5;--dim:#7a8597;--line:rgba(255,255,255,.14)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+canvas{position:fixed}
+#bg{inset:0;z-index:0}
+#hud{left:50%;top:50%;transform:translate(-50%,-62%);z-index:1;cursor:pointer}
+header{position:fixed;top:calc(14px + env(safe-area-inset-top));left:0;right:0;text-align:center;z-index:3;pointer-events:none}
+#title{font-family:Consolas,monospace;font-size:clamp(22px,3.4vw,38px);letter-spacing:.55em;padding-left:.55em;font-weight:700;animation:glitch 6s infinite}
+#status{margin-top:6px;font-size:11px;letter-spacing:.25em;color:var(--dim)}
+@keyframes glitch{0%,92%,100%{text-shadow:0 0 14px rgba(255,255,255,.35);transform:none}
+93%{text-shadow:3px 0 #ff3b3b,-3px 0 #6ee7ff;transform:translateX(2px)}
+95%{text-shadow:-3px 0 #ff3b3b,3px 0 #6ee7ff;transform:translateX(-2px)}
+97%{text-shadow:0 0 14px rgba(255,255,255,.35);transform:none}}
+#clock{position:fixed;top:16px;right:22px;z-index:3;font-family:Consolas,monospace;font-size:13px;color:var(--dim);letter-spacing:.15em}
+#ticker{display:none;position:fixed;top:calc(78px + env(safe-area-inset-top));left:0;right:0;text-align:center;z-index:3;font-size:11px;color:var(--dim);letter-spacing:.06em;padding:0 10px}
+.panel{position:fixed;z-index:3;top:96px;width:240px;border:1px solid var(--line);background:rgba(8,10,16,.55);backdrop-filter:blur(6px);padding:14px 16px;font-size:12px}
+.panel::before,.panel::after{content:"";position:absolute;width:12px;height:12px;border:2px solid #fff;opacity:.75}
+.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+#left{left:22px}#right{right:22px}
+.panel h3{font-size:10px;letter-spacing:.35em;color:var(--dim);margin-bottom:10px;font-weight:600}
+.row{display:flex;justify-content:space-between;margin:7px 0;letter-spacing:.06em}
+.row b{font-family:Consolas,monospace;font-weight:600}
+.bar{height:4px;background:rgba(255,255,255,.1);margin:3px 0 9px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:#fff;transition:width .8s}
+#brief{margin-top:8px;color:var(--dim);font-size:11px;line-height:1.5;max-height:120px;overflow:auto}
+#dock{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(820px,94vw);z-index:3}
+#log{height:150px;overflow-y:auto;border:1px solid var(--line);background:rgba(6,8,13,.72);backdrop-filter:blur(6px);padding:10px 14px;font-size:14px;line-height:1.55}
+#log .m{margin:4px 0;white-space:pre-wrap;word-break:break-word}
+#log .you{color:#9fb2c8}#log .you::before{content:"TU  ›  ";color:var(--dim);font-size:10px;letter-spacing:.2em}
+#log .ven{color:#fff}#log .ven::before{content:"VENOM  ›  ";color:#b388ff;font-size:10px;letter-spacing:.2em}
+#interim{min-height:16px;font-size:11px;color:var(--dim);padding:3px 4px;letter-spacing:.05em}
+#ctl{display:flex;gap:6px;margin-top:4px}
+#txt{flex:1;min-width:0;background:rgba(6,8,13,.85);border:1px solid var(--line);color:#fff;padding:11px 12px;font-size:16px;outline:none}
+#txt:focus{border-color:#fff}
+button,select{cursor:pointer;background:rgba(255,255,255,.06);color:#fff;border:1px solid var(--line);padding:10px 12px;font-size:12px;letter-spacing:.1em;transition:.2s;font-family:inherit}
+select{max-width:150px;background:#0b0e16}
+button:hover{background:#fff;color:#000}
+button.on{background:#fff;color:#000;font-weight:700}
+#row2{display:flex;flex-wrap:nowrap;gap:6px;margin-top:6px;overflow-x:auto;scrollbar-width:none}
+#row2::-webkit-scrollbar{display:none}
+#row2 button{padding:6px 10px;font-size:11px;color:var(--dim);white-space:nowrap}
+#row2 button:hover{color:#000}
+#boot{position:fixed;inset:0;z-index:20;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .9s}
+#boot h1{font-family:Consolas,monospace;letter-spacing:.7em;padding-left:.7em;font-size:clamp(28px,6vw,60px);animation:glitch 4s infinite}
+#bootlines{font-family:Consolas,monospace;font-size:12px;color:var(--dim);min-height:90px;line-height:1.8;text-align:left}
+#enter{font-size:13px;padding:14px 34px;letter-spacing:.35em}
+#cd{position:fixed;inset:0;z-index:30;background:rgba(80,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+#cd .n{font-family:Consolas,monospace;font-size:clamp(80px,18vw,200px);color:#ff3b3b}
+#cd p{letter-spacing:.3em;font-size:13px}
+@media(max-width:1000px){.panel{display:none}#ticker{display:block}#log{height:120px}#clock{display:none}}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<canvas id="hud"></canvas>
+<header><div id="title">VENOM</div><div id="status">OFFLINE</div></header>
+<div id="clock"></div>
+<div id="ticker"></div>
+
+<aside class="panel" id="left">
+  <h3>SYSTEM</h3>
+  <div class="row"><span>CPU</span><b id="cpu">--</b></div><div class="bar"><i id="cpub"></i></div>
+  <div class="row"><span>RAM</span><b id="ram">--</b></div><div class="bar"><i id="ramb"></i></div>
+  <div class="row"><span>BATTERY</span><b id="bat">--</b></div>
+  <div class="row"><span>NETWORK</span><b id="net">--</b></div>
+  <div class="row"><span>AI KEYS</span><b id="keys">--</b></div>
+  <div class="row"><span>PHONE ALERTS</span><b id="pa">--</b></div>
+  <div class="row"><span>VOICE</span><b id="vstate">OFF</b></div>
+</aside>
+<aside class="panel" id="right">
+  <h3>TODAY</h3>
+  <div class="row"><span>IS MAHINE AAYA</span><b id="rec">--</b></div>
+  <div class="row"><span>BAAKI</span><b id="pend">--</b></div>
+  <div class="row"><span>NAYE LEADS</span><b id="leads">--</b></div>
+  <div class="row"><span>APPROVAL WAIT</span><b id="queue">--</b></div>
+  <div class="row"><span>NEXT MEETING</span></div>
+  <div id="meet" style="font-size:11px;color:var(--dim)">—</div>
+  <div id="brief"></div>
+</aside>
+
+<div id="dock">
+  <div id="log"></div>
+  <div id="interim"></div>
+  <div id="ctl">
+    <button id="attach" title="Design / video bhej">📎</button>
+    <input id="txt" placeholder="Type kar ya orb pe tap karke bol..." autocomplete="off" enterkeyhint="send">
+    <button id="send">SEND</button>
+    <button id="talk" title="Ek baar bol">🎙</button>
+    <button id="voice">VOICE: OFF</button>
+    <button id="spk" class="on" title="Jawab bolke sunana">🔊</button>
+  </div>
+  <div id="row2"><select id="lang"></select></div>
+  <input type="file" id="file" accept="image/*,video/*" hidden>
+</div>
+
+<div id="boot">
+  <h1>VENOM</h1>
+  <div id="bootlines"></div>
+  <button id="enter">TAP TO ACTIVATE</button>
+</div>
+<div id="cd"><p>LAPTOP SHUTDOWN</p><div class="n" id="cdn">15</div><button id="cdc">CANCEL</button></div>
+
+<script>
+const TOKEN="__TOKEN__";
+const $=id=>document.getElementById(id);
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const touch=matchMedia('(pointer:coarse)').matches;
+const LS={get:(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+let lang=LS.get('lang','hi-IN'),speakOn=LS.get('speak','1')==='1';
+let mode='off',voiceOn=false,awake=false,speaking=false,busy=false,ptt=false,skipReplies=false;
+let lastActive=Date.now(),rec=null,audioCtx=null,an=null,micBuf=null,micStream=null,micLevel=0,cdTimer=null,speakGen=0,wl=null;
+const alertQ=[];
+const MODES={
+ off:{c:[120,130,145],label:touch?'ORB PE TAP KAR AUR BOL':'VOICE OFF'},
+ sleep:{c:[170,185,205],label:'STANDBY  ·  SAY "HEY VENOM"'},
+ listening:{c:[235,245,255],label:'LISTENING'},
+ thinking:{c:[179,136,255],label:'PROCESSING'},
+ speaking:{c:[255,255,255],label:'SPEAKING  ·  TAP ORB TO STOP'},
+ alert:{c:[255,59,59],label:'ALERT'}
+};
+function setMode(m){mode=m;$('status').textContent=MODES[m].label;$('vstate').textContent=voiceOn?(awake?'ACTIVE':'STANDBY'):(touch?'TAP':'OFF');}
+
+/* ---------- languages ---------- */
+const LANGS=[['hi-IN','Hinglish / हिन्दी'],['en-IN','English (India)'],['gu-IN','ગુજરાતી'],['mr-IN','मराठी'],['pa-IN','ਪੰਜਾਬੀ'],['bn-IN','বাংলা'],['ta-IN','தமிழ்'],['te-IN','తెలుగు'],['kn-IN','ಕನ್ನಡ'],['ml-IN','മലയാളം'],['ur-PK','اردو'],['en-US','English (US)'],['en-GB','English (UK)'],['es-ES','Español'],['fr-FR','Français'],['de-DE','Deutsch'],['pt-BR','Português'],['ru-RU','Русский'],['ar-SA','العربية'],['ja-JP','日本語'],['zh-CN','中文']];
+LANGS.forEach(([c,n])=>{const o=document.createElement('option');o.value=c;o.textContent=n;if(c===lang)o.selected=true;$('lang').appendChild(o);});
+$('lang').onchange=()=>{lang=$('lang').value;LS.set('lang',lang);addLog('ven','Language badal di: '+$('lang').selectedOptions[0].textContent);if(voiceOn){stopRec();restoreMode();}};
+
+/* ---------- log ---------- */
+function addLog(who,text){
+  const d=document.createElement('div');d.className='m '+(who==='you'?'you':'ven');d.textContent=text;
+  const l=$('log');l.appendChild(d);l.scrollTop=l.scrollHeight;
+  while(l.children.length>80)l.removeChild(l.firstChild);
+}
+
+/* ---------- audio / mic level ---------- */
+function chime(f=880,d=0.12){
+  if(!audioCtx)return;
+  try{const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.frequency.value=f;o.type='sine';g.gain.value=0.06;o.connect(g);g.connect(audioCtx.destination);o.start();
+  g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+d);o.stop(audioCtx.currentTime+d);}catch(e){}
+}
+async function initMic(){
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+    const src=audioCtx.createMediaStreamSource(micStream);
+    an=audioCtx.createAnalyser();an.fftSize=256;src.connect(an);micBuf=new Uint8Array(an.fftSize);
+    return true;
+  }catch(e){addLog('ven','Mic permission nahi mili. Browser ke address bar se mic allow kar.');return false;}
+}
+function stopMic(){if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;an=null;}}
+async function keepAwake(){try{if(navigator.wakeLock&&!wl)wl=await navigator.wakeLock.request('screen');if(wl)wl.addEventListener('release',()=>{wl=null;});}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&voiceOn)keepAwake();});
+
+/* ---------- speech out (clear, chunked, language-aware) ---------- */
+function cleanSpeech(t){return t.split(/\n\nSources/)[0].replace(/https?:\/\/\S+/g,'').replace(/[*#_`>|~]/g,'').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim();}
+function chunk(t){
+  const parts=(t.match(/[^.!?।\n]+[.!?।]?/g)||[t]).map(s=>s.trim()).filter(Boolean),out=[];
+  for(const p of parts){
+    if(p.length<=170){out.push(p);continue;}
+    let c='';for(const x of p.split(' ')){if((c+' '+x).length>170){out.push(c);c=x;}else c=c?c+' '+x:x;}
+    if(c)out.push(c);
+  }
+  return out;
+}
+function detectLang(t){
+  if(/[\u0A80-\u0AFF]/.test(t))return 'gu-IN';
+  if(/[\u0900-\u097F]/.test(t))return lang==='mr-IN'?'mr-IN':'hi-IN';
+  if(/[\u0A00-\u0A7F]/.test(t))return 'pa-IN';
+  if(/[\u0980-\u09FF]/.test(t))return 'bn-IN';
+  if(/[\u0B80-\u0BFF]/.test(t))return 'ta-IN';
+  if(/[\u0C00-\u0C7F]/.test(t))return 'te-IN';
+  if(/[\u0C80-\u0CFF]/.test(t))return 'kn-IN';
+  if(/[\u0D00-\u0D7F]/.test(t))return 'ml-IN';
+  if(/[\u0600-\u06FF]/.test(t))return lang==='ur-PK'?'ur-PK':'ar-SA';
+  if(/[\u3040-\u30FF]/.test(t))return 'ja-JP';
+  if(/[\u4E00-\u9FFF]/.test(t))return 'zh-CN';
+  if(/[\u0400-\u04FF]/.test(t))return 'ru-RU';
+  return /^(en|es|fr|de|pt)/.test(lang)?lang:'en-IN';
+}
+function voiceFor(L){
+  const vs=speechSynthesis.getVoices();if(!vs.length)return null;
+  const exact=vs.filter(v=>v.lang.replace('_','-').toLowerCase()===L.toLowerCase());
+  const same=vs.filter(v=>v.lang.toLowerCase().startsWith(L.slice(0,2).toLowerCase()));
+  const pool=exact.length?exact:same;
+  return pool.find(v=>/natural|neural|google/i.test(v.name))||pool[0]||null;
+}
+function say(text){
+  return new Promise(res=>{
+    const clean=cleanSpeech(text||'');
+    if(!speakOn||!window.speechSynthesis||!clean){res();return;}
+    const gen=++speakGen;speaking=true;setMode('speaking');stopRec();
+    const L=detectLang(clean),v=voiceFor(L),parts=chunk(clean);let i=0;
+    const next=()=>{
+      if(gen!==speakGen){res();return;}
+      if(i>=parts.length){speaking=false;res();return;}
+      const u=new SpeechSynthesisUtterance(parts[i++]);
+      if(v){u.voice=v;u.lang=v.lang;}else u.lang=L;
+      u.pitch=.85;u.rate=1;u.onend=next;u.onerror=next;
+      speechSynthesis.speak(u);
+    };
+    speechSynthesis.cancel();next();
+  });
+}
+function interrupt(){speakGen++;skipReplies=true;try{speechSynthesis.cancel();}catch(e){}speaking=false;restoreMode();}
+if(window.speechSynthesis){speechSynthesis.onvoiceschanged=()=>{};speechSynthesis.getVoices();}
+
+/* ---------- speech in ---------- */
+const WAKE=/(ven[ao]m|वेन[मो]म|વેનમ|வெனம்|వెనమ్|ভেনম)/i;
+function restoreMode(){
+  if(!voiceOn){setMode('off');return;}
+  setMode(awake?'listening':'sleep');startRec();
+}
+function startRec(){
+  if(!SR||!voiceOn||speaking||busy||rec||ptt)return;
+  const r=new SR();r.lang=awake?lang:'en-IN';r.continuous=true;r.interimResults=true;
+  r.onresult=e=>{
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const x=e.results[i];
+      if(x.isFinal)onFinal(x[0].transcript.trim());else $('interim').textContent=x[0].transcript;
+    }
+  };
+  r.onend=()=>{if(rec===r)rec=null;$('interim').textContent='';if(voiceOn&&!speaking&&!busy&&!ptt)setTimeout(startRec,300);};
+  r.onerror=e=>{
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){addLog('ven','Mic block hai. Address bar se allow kar.');setVoice(false);}
+  };
+  rec=r;try{r.start();}catch(e){rec=null;}
+}
+function stopRec(){if(rec){const r=rec;rec=null;r.onend=null;try{r.abort();}catch(e){}}$('interim').textContent='';}
+setInterval(()=>{if(voiceOn&&!rec&&!speaking&&!busy&&!ptt)startRec();},4000);   /* watchdog: voice kabhi atke nahi */
+
+async function onFinal(text){
+  if(!text)return;
+  if(!awake){
+    if(!WAKE.test(text))return;
+    const rest=text.replace(/(hey|hay|heyo|hello|hi|हे|हेलो)?\s*(ven[ao]m|वेन[मो]म|વેનમ|வெனம்|వెనమ్|ভেনম)/i,'').trim();
+    await wake(rest.length>3?rest:'');return;
+  }
+  lastActive=Date.now();send(text);
+}
+async function wake(rest){
+  awake=true;lastActive=Date.now();chime(660,.1);setTimeout(()=>chime(990,.12),110);stopRec();
+  if(rest){send(rest);return;}
+  await say('Haan Maninder, bol. Kya kaam hai?');restoreMode();
+}
+function goSleep(){awake=false;stopRec();restoreMode();}
+setInterval(()=>{if(voiceOn&&awake&&!speaking&&!busy&&Date.now()-lastActive>90000){addLog('ven','(so gaya. Jagane ke liye bol: Hey Venom)');goSleep();}},3000);
+
+function setVoice(on){
+  voiceOn=on;$('voice').textContent='VOICE: '+(on?'ON':'OFF');$('voice').classList.toggle('on',on);
+  if(on){
+    if(!SR){addLog('ven','Is browser mein voice input nahi. Chrome/Edge/Safari use kar, ya type kar.');voiceOn=false;$('voice').textContent='VOICE: OFF';$('voice').classList.remove('on');return;}
+    (async()=>{if(!micStream)await initMic();awake=false;keepAwake();restoreMode();})();
+  }else{awake=false;stopRec();stopMic();setMode('off');}
+}
+$('voice').onclick=()=>setVoice(!voiceOn);
+
+/* ek baar bolo (phone / iPhone ke liye best) */
+function talkOnce(){
+  if(!SR){addLog('ven','Is browser mein voice input nahi. Type kar ya keyboard ka mic use kar.');return;}
+  if(speaking){interrupt();return;}
+  if(busy||ptt)return;
+  stopRec();ptt=true;awake=true;lastActive=Date.now();setMode('listening');chime(660,.08);
+  const r=new SR();r.lang=lang;r.continuous=false;r.interimResults=true;let got=false;
+  r.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];
+    if(x.isFinal){got=true;send(x[0].transcript.trim());}else $('interim').textContent=x[0].transcript;}};
+  r.onend=()=>{ptt=false;$('interim').textContent='';if(!got)restoreMode();};
+  r.onerror=e=>{ptt=false;if(e.error==='not-allowed'||e.error==='service-not-allowed')addLog('ven','Mic block hai. Browser settings mein mic allow kar.');};
+  try{r.start();}catch(e){ptt=false;}
+}
+$('talk').onclick=talkOnce;
+$('hud').addEventListener('click',()=>{if(speaking)interrupt();else talkOnce();});
+
+/* ---------- server ---------- */
+async function playReplies(list){
+  for(const rp of list){if(skipReplies)break;addLog('ven',rp.show);await say(rp.say);}
+}
+async function send(text){
+  text=(text||'').trim();if(!text)return;
+  if(cdTimer&&/cancel|ruk|nahi|रुक|कैंसिल|रद्द/i.test(text)){cancelShutdown();return;}
+  if(/(voice|mic)\s*(off|band|bandh)/i.test(text)){addLog('you',text);addLog('ven','Voice band kar raha hu. Jab chahiye button daba dena.');await say('Voice band kar raha hu.');setVoice(false);return;}
+  addLog('you',text);busy=true;skipReplies=false;stopRec();setMode('thinking');
+  let data;
+  try{
+    const r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json','X-Venom-Token':TOKEN},body:JSON.stringify({text})});
+    if(r.status===403){data={replies:[{say:'Session khatam ho gaya. Page reload kar.',show:'Session khatam ho gaya. Page reload kar ya dobara login kar.'}]};}
+    else data=await r.json();
+  }catch(e){data={replies:[{say:'Server se connection toot gaya.',show:'Server se connection toot gaya. Laptop pe jarvis.py chal raha hai? Net check kar.'}]};}
+  await playReplies(data.replies||[]);
+  busy=false;
+  if(data.countdown)startCountdown(data.countdown);
+  if(data.sleep){goSleep();return;}
+  lastActive=Date.now();restoreMode();
+}
+function submitText(){const t=$('txt').value.trim();if(!t)return;$('txt').value='';awake=true;send(t);}
+$('txt').addEventListener('keydown',e=>{if(e.key==='Enter')submitText();});
+$('send').onclick=submitText;
+
+/* ---------- upload (design / video review) ---------- */
+$('attach').onclick=()=>$('file').click();
+$('file').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  const note=$('txt').value.trim();$('txt').value='';
+  addLog('you','📎 '+f.name+(note?' — '+note:''));
+  busy=true;skipReplies=false;stopRec();setMode('thinking');
+  const fd=new FormData();fd.append('file',f);fd.append('note',note);
+  let data;
+  try{const r=await fetch('/api/upload',{method:'POST',headers:{'X-Venom-Token':TOKEN},body:fd});data=await r.json();}
+  catch(err){data={replies:[{say:'Upload fail ho gaya.',show:'Upload fail ho gaya. Net ya file size check kar.'}]};}
+  await playReplies(data.replies||[]);busy=false;restoreMode();
+};
+
+const CHIPS=[['Security check','security check'],['Meetings','meetings kab hai'],['Payments baaki','payment pending list'],
+ ['Trends','trends dhundo reels aur design ke'],['Content plan','7 din ka content plan bana'],['Reel idea','reel idea aur script bana'],
+ ['Captions','caption aur hashtags bana'],['Aaj ka plan','aaj ke liye mere top 3 kaam batao'],['Rate card','price chart'],['Phone test','notification test']];
+CHIPS.forEach(([l,c])=>{const b=document.createElement('button');b.textContent=l;b.onclick=()=>{awake=true;send(c);};$('row2').appendChild(b);});
+
+$('spk').onclick=()=>{speakOn=!speakOn;LS.set('speak',speakOn?'1':'0');$('spk').classList.toggle('on',speakOn);$('spk').textContent=speakOn?'🔊':'🔇';if(!speakOn&&speaking)interrupt();};
+$('spk').classList.toggle('on',speakOn);$('spk').textContent=speakOn?'🔊':'🔇';
+
+/* ---------- shutdown countdown ---------- */
+function startCountdown(sec){
+  let n=sec;$('cd').style.display='flex';$('cdn').textContent=n;setMode('alert');
+  cdTimer=setInterval(()=>{n--;$('cdn').textContent=n;chime(500,.08);if(n<=0){clearInterval(cdTimer);cdTimer=null;}},1000);
+}
+async function cancelShutdown(){
+  clearInterval(cdTimer);cdTimer=null;$('cd').style.display='none';
+  await fetch('/api/shutdown/cancel',{method:'POST',headers:{'X-Venom-Token':TOKEN}});
+  addLog('ven','Shutdown cancel kar diya.');await say('Cancel kar diya. Laptop chalu hi rahega.');restoreMode();
+}
+$('cdc').onclick=cancelShutdown;
+
+/* ---------- status polling (alerts ab kabhi miss nahi hote) ---------- */
+function setBar(id,v){$(id).style.width=Math.min(100,v||0)+'%';}
+const inr=x=>'₹'+Math.round(x||0).toLocaleString('en-IN');
+async function poll(){
+  try{
+    const r=await fetch('/api/status',{headers:{'X-Venom-Token':TOKEN}});const s=await r.json();
+    const st=s.stats||{};
+    $('cpu').textContent=st.cpu!=null?Math.round(st.cpu)+'%':'n/a';setBar('cpub',st.cpu);
+    $('ram').textContent=st.ram!=null?Math.round(st.ram)+'%':'n/a';setBar('ramb',st.ram);
+    $('bat').textContent=st.battery!=null?st.battery+'%'+(st.plugged?' ⚡':''):'n/a';
+    $('keys').textContent=s.keys;$('pa').textContent=s.phone_alerts?'ON':'OFF';
+    $('rec').textContent=inr(s.received);$('pend').textContent=inr(s.pending);
+    $('leads').textContent=s.leads;$('queue').textContent=s.queue;
+    $('meet').textContent=s.meeting||'Koi nahi';$('brief').textContent=s.brief||'';
+    $('ticker').textContent=`aaya ${inr(s.received)}  ·  baaki ${inr(s.pending)}  ·  leads ${s.leads}  ·  ${s.meeting||'koi meeting nahi'}`;
+    if(s.alerts&&s.alerts.length)alertQ.push(...s.alerts);
+  }catch(e){}
+  $('net').textContent=navigator.onLine?'ONLINE':'OFFLINE';
+  if(alertQ.length&&!speaking&&!busy&&!ptt){
+    const prev=mode;setMode('alert');
+    while(alertQ.length){const a=alertQ.shift();addLog('ven',a.show);await say(a.say);}
+    restoreMode();
+  }
+}
+setInterval(poll,5000);
+setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+
+/* ---------- canvas ---------- */
+const bg=$('bg'),bx=bg.getContext('2d');let P=[];
+function resizeBg(){bg.width=innerWidth;bg.height=innerHeight;P=Array.from({length:Math.round(innerWidth*innerHeight/16000)},()=>({x:Math.random()*bg.width,y:Math.random()*bg.height,v:.05+Math.random()*.25,r:Math.random()*1.4+.3}));}
+const hud=$('hud'),hx=hud.getContext('2d');
+const BARS=72,bars=new Float32Array(BARS);let amp=0,DPR=Math.min(devicePixelRatio||1,2),hbPhase=0,lastTs=0,beatFlag=false;
+function resizeHud(){const s=Math.min(innerWidth*(innerWidth<700?.9:.52),innerHeight*(innerWidth<700?.5:.6));hud.width=hud.height=s*DPR;hud.style.width=hud.style.height=s+'px';}
+function resizeAll(){resizeBg();resizeHud();}
+addEventListener('resize',resizeAll);resizeAll();
+const rgba=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const G=(x,c,w)=>Math.exp(-Math.pow((x-c)/w,2));
+const beatEnv=ph=>G(ph,.05,.04)+.65*G(ph,.27,.05);   /* lub-dub */
+function frame(ts){
+  const t=ts/1000,dt=Math.min(.1,(ts-lastTs)/1000||.016);lastTs=ts;
+  const W=hud.width,c=W/2,col=MODES[mode].c;
+  bx.clearRect(0,0,bg.width,bg.height);bx.fillStyle='rgba(255,255,255,.35)';
+  for(const p of P){p.y-=p.v;if(p.y<-5){p.y=bg.height+5;p.x=Math.random()*bg.width;}bx.globalAlpha=.25+.5*Math.abs(Math.sin(t*.6+p.x));bx.beginPath();bx.arc(p.x,p.y,p.r,0,6.283);bx.fill();}
+  bx.globalAlpha=1;
+  if(an){an.getByteTimeDomainData(micBuf);let s=0;for(let i=0;i<micBuf.length;i++){const v=(micBuf[i]-128)/128;s+=v*v;}micLevel=Math.min(1,Math.sqrt(s/micBuf.length)*5);}else micLevel=0;
+  /* heartbeat */
+  const hz=mode==='speaking'?1.35:mode==='thinking'?1.0:mode==='listening'?.9+micLevel*.8:mode==='alert'?2:.6;
+  hbPhase=(hbPhase+dt*hz)%1;
+  const hb=beatEnv(hbPhase),hbw=mode==='speaking'?1:mode==='thinking'?.45:mode==='listening'?.5:mode==='alert'?1:.25;
+  const target=mode==='speaking'?.30+hb*.55+Math.random()*.08:mode==='thinking'?.15+hb*.2:mode==='listening'?.10+micLevel*.9+hb*.1:
+    mode==='sleep'?.03+micLevel*.25+hb*.05:mode==='alert'?.2+hb*.5:.02;
+  amp+=(target-amp)*(mode==='speaking'?.35:.14);
+  /* poora orb dhadakta aur hilta hai */
+  const sp=mode==='speaking';
+  const sc=1+hb*hbw*.075,rot=Math.sin(t*.8)*(sp?2.5:.7),dx=Math.sin(t*1.1)*(sp?7:2),dy=Math.cos(t*1.3)*(sp?5:1.5);
+  hud.style.transform=`translate(calc(-50% + ${dx}px),calc(-62% + ${dy}px)) scale(${sc}) rotate(${rot}deg)`;
+  if(sp&&hb>.85&&!beatFlag){beatFlag=true;if(navigator.vibrate)navigator.vibrate(10);}if(hb<.3)beatFlag=false;
+  hx.clearRect(0,0,W,W);
+  const g=hx.createRadialGradient(c,c,W*.04,c,c,W*.5);
+  g.addColorStop(0,rgba(col,.28+amp*.45+hb*hbw*.2));g.addColorStop(.45,rgba(col,.06+amp*.1));g.addColorStop(1,'rgba(0,0,0,0)');
+  hx.fillStyle=g;hx.fillRect(0,0,W,W);hx.lineCap='round';
+  hx.save();hx.translate(c,c);hx.rotate(t*.12);const R1=W*.43;
+  for(let i=0;i<120;i++){const a=i/120*6.283,len=i%10===0?W*.025:W*.012;hx.strokeStyle=rgba(col,i%10===0?.8:.35);hx.lineWidth=(i%10===0?2:1)*DPR;
+    hx.beginPath();hx.moveTo(Math.cos(a)*R1,Math.sin(a)*R1);hx.lineTo(Math.cos(a)*(R1-len),Math.sin(a)*(R1-len));hx.stroke();}
+  hx.restore();
+  hx.save();hx.translate(c,c);hx.rotate(-t*.25);hx.setLineDash([W*.02,W*.012]);hx.strokeStyle=rgba(col,.45);hx.lineWidth=2*DPR;
+  hx.beginPath();hx.arc(0,0,W*.38,0,6.283);hx.stroke();hx.restore();
+  hx.save();hx.translate(c,c);hx.rotate(t*(mode==='thinking'?1.6:.45));hx.lineWidth=5*DPR;hx.strokeStyle=rgba(col,.85);
+  for(let k=0;k<3;k++){const a=k*2.094;hx.beginPath();hx.arc(0,0,W*.33,a,a+.9);hx.stroke();}
+  hx.restore();
+  const R2=W*.265;
+  for(let i=0;i<BARS;i++){
+    const a=i/BARS*6.283-1.5708,h=amp*(.35+.65*Math.abs(Math.sin(i*.55+t*5.3)))*(.6+.4*Math.random());
+    bars[i]+=(h-bars[i])*.35;const len=W*.02+bars[i]*W*.11;
+    hx.strokeStyle=rgba(col,Math.min(1,.55+bars[i]));hx.lineWidth=2.4*DPR;
+    hx.beginPath();hx.moveTo(c+Math.cos(a)*R2,c+Math.sin(a)*R2);hx.lineTo(c+Math.cos(a)*(R2+len),c+Math.sin(a)*(R2+len));hx.stroke();
+  }
+  const tn=mode==='off'?0:10;
+  for(let k=0;k<tn;k++){
+    const a0=k/tn*6.283+t*.18,L=W*.05+amp*W*.2;
+    hx.strokeStyle=rgba(col,.12+amp*.25);hx.lineWidth=1.6*DPR;hx.beginPath();
+    for(let j=0;j<=16;j++){
+      const f=j/16,r=W*.445+f*L,off=Math.sin(t*2.6+k*1.7+j*.55)*W*.018*(f+amp*2);
+      const px=c+Math.cos(a0)*r+Math.cos(a0+1.5708)*off,py=c+Math.sin(a0)*r+Math.sin(a0+1.5708)*off;
+      j?hx.lineTo(px,py):hx.moveTo(px,py);
+    }
+    hx.stroke();
+  }
+  hx.strokeStyle=rgba(col,.9);hx.lineWidth=2*DPR;hx.beginPath();hx.arc(c,c,W*.2,0,6.283);hx.stroke();
+  const cr=W*.095*(1+amp*.35+hb*hbw*.25);
+  const cg=hx.createRadialGradient(c,c,0,c,c,cr*1.6);
+  cg.addColorStop(0,'rgba(255,255,255,'+Math.min(1,.75+amp*.25)+')');cg.addColorStop(.5,rgba(col,.55));cg.addColorStop(1,'rgba(0,0,0,0)');
+  hx.fillStyle=cg;hx.beginPath();hx.arc(c,c,cr*1.6,0,6.283);hx.fill();
+  hx.save();hx.translate(c,c);hx.rotate(-t*.7);hx.strokeStyle='rgba(0,0,0,.65)';hx.lineWidth=3*DPR;hx.beginPath();
+  for(let k=0;k<3;k++){const a=k*2.094-1.5708,x=Math.cos(a)*cr*.62,y=Math.sin(a)*cr*.62;k?hx.lineTo(x,y):hx.moveTo(x,y);}
+  hx.closePath();hx.stroke();hx.restore();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+setMode('off');
+
+/* ---------- boot ---------- */
+$('enter').onclick=async()=>{
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();try{audioCtx.resume();}catch(e){}
+  try{speechSynthesis.speak(new SpeechSynthesisUtterance(' '));}catch(e){}   /* iPhone: audio unlock */
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  $('enter').style.display='none';
+  let st={keys:0,pending:0,leads:0};
+  try{const r=await fetch('/api/status',{headers:{'X-Venom-Token':TOKEN}});st=await r.json();}catch(e){}
+  const lines=['> NEURAL LINK ........ OK','> AI KEYS ............ '+st.keys+' ACTIVE','> SECURITY WATCH ..... ON',
+    '> PHONE ALERTS ....... '+(st.phone_alerts?'ON':'NOT SET'),'> PORTFOLIO LINK ..... '+(st.portfolio?'OK':'NOT SET (.env)'),
+    '> VOICE MODULE ....... '+(SR?'READY':'TYPE ONLY'),'> WELCOME, MANINDER.'];
+  let i=0;
+  const tick=()=>{$('bootlines').textContent+=(i?'\n':'')+lines[i];chime(400+i*90,.05);i++;
+    if(i<lines.length)setTimeout(tick,380);else setTimeout(finishBoot,600);};
+  tick();
+};
+async function finishBoot(){
+  $('boot').style.opacity=0;setTimeout(()=>$('boot').style.display='none',900);
+  poll();keepAwake();
+  if(!touch)setVoice(true);
+  addLog('ven',touch?'Venom online. Orb pe tap karke bol, ya neeche type kar.':'Venom online. Bol "Hey Venom", ya orb pe tap kar, ya type kar.');
+  await say('Venom online. Hum tumhare saath hain, Maninder.');
+  restoreMode();
+}
+</script>
+</body>
+</html>
