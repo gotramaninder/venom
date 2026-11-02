@@ -100,3 +100,19 @@ def test_provider_key_cooldown_is_independent(monkeypatch):
     assert venom._provider_key_id("gemini", "key-a") in venom._PROVIDER_COOLDOWN
     assert venom._provider_key_id("gemini", "key-b") not in venom._PROVIDER_COOLDOWN
     assert venom.provider_status()[0]["status"] == "degraded"
+
+
+
+def test_openai_provider_route_uses_configured_adapter(monkeypatch, tmp_path):
+    import venom
+
+    monkeypatch.setattr(venom, "PROVIDERS", [("openai", "test-key")])
+    monkeypatch.setattr(venom, "_PROVIDER_COOLDOWN", {})
+    monkeypatch.setattr(venom, "_PROVIDER_HEALTH", {})
+    monkeypatch.setattr(venom, "history", [])
+    monkeypatch.setattr(venom, "HISTORY_FILE", tmp_path / "history.json")
+    monkeypatch.setattr(venom, "call_openai", lambda key, system, contents: "OpenAI route OK")
+
+    assert venom.ask("hello", keep=True) == "OpenAI route OK"
+    assert venom._PROVIDER_HEALTH["openai"] == "online"
+    assert venom.HISTORY_FILE.exists()
