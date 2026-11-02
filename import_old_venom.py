@@ -32,11 +32,29 @@ def main():
         return 1
 
     copied, kept = [], []
-    env_result = copy_missing(old / ".env", BASE / ".env")
-    if env_result == "copied":
-        copied.append(".env")
-    elif env_result == "kept-existing":
-        kept.append(".env (new setup already has one; not overwritten)")
+    old_env, new_env = old / ".env", BASE / ".env"
+    if old_env.is_file():
+        if not new_env.exists():
+            shutil.copy2(old_env, new_env)
+            copied.append(".env")
+        else:
+            existing_lines = new_env.read_text(encoding="utf-8").splitlines()
+            existing_keys = {line.split("=", 1)[0].strip() for line in existing_lines
+                             if "=" in line and not line.lstrip().startswith("#")}
+            additions = []
+            for line in old_env.read_text(encoding="utf-8").splitlines():
+                if "=" not in line or line.lstrip().startswith("#"):
+                    continue
+                key = line.split("=", 1)[0].strip()
+                if key and key not in existing_keys:
+                    additions.append(line)
+                    existing_keys.add(key)
+            if additions:
+                with new_env.open("a", encoding="utf-8") as f:
+                    f.write("\\n" + "\\n".join(additions) + "\\n")
+                copied.append(".env (missing settings merged; current values kept)")
+            else:
+                kept.append(".env (current values kept)")
 
     old_data = old / "data"
     source_data = old_data if old_data.is_dir() else old
