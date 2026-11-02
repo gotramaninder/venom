@@ -55,9 +55,9 @@ jobs:
       - name: Build clean portable package
         shell: pwsh
         run: |
-          $exclude = @(".git", ".venv", "venv", "data", "logs", "outputs", "__pycache__", ".pytest_cache", "dist")
+          $exclude = @(".git", ".venv", "venv", "data", "logs", "outputs", "__pycache__", ".pytest_cache", "dist", "VENOM_FINAL.zip")
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Get-ChildItem -Force | Where-Object { $_.Name -notin $exclude -and $_.Name -ne ".env" } | ForEach-Object {
+          Get-ChildItem -Force | Where-Object { $_.Name -notin $exclude -and $_.Name -ne ".env" -and $_.Extension -ne ".zip" } | ForEach-Object {
             Copy-Item $_.FullName -Destination dist -Recurse -Force
           }
           if (Test-Path "dist/.env") { Remove-Item "dist/.env" -Force }
