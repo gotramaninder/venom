@@ -26,7 +26,7 @@ data = clients, payments, leads, meetings, settings, chat history
 logs = error / activity logs
 outputs = generated files and uploaded media
 static = VENOM HUD screen
-.venv = Python environment (setup khud banata hai)
+runtime = bundled portable Python (official ZIP mein included)\n.venv = source-only setup ka Python environment
 .env = private API keys (GitHub par kabhi upload mat karna)
 
 Purana folder safe rahega. Importer existing data overwrite nahi karta.
