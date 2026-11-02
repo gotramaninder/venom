@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 title VENOM PHONE SETUP
 if not exist .env (
-  echo Pehle SETUP_VENOM.bat chala.
+  echo Pehle 1_SETUP_VENOM.bat chala.
   pause
   exit /b
 )
