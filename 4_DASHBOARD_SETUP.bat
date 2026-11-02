@@ -1,5 +1,12 @@
 @echo off
 cd /d "%~dp0"
+if exist "runtime\python.exe" (
+ echo The new VENOM Command Center already includes the main dashboard.
+ echo The legacy Streamlit dashboard is optional and is not needed for daily use.
+ echo Start VENOM with 2_START_VENOM.bat.
+ pause
+ exit /b 0
+)
 if not exist ".venv\Scripts\python.exe" (
  echo First run 1_SETUP_VENOM.bat.
  pause
@@ -11,5 +18,5 @@ if errorlevel 1 (
  pause
  exit /b 1
 )
-echo Dashboard dependencies installed.
+echo Legacy dashboard dependencies installed.
 pause
