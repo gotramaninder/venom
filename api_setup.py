@@ -9,9 +9,10 @@ BASE = Path(__file__).parent
 ENV_FILE = BASE / ".env"
 PROVIDERS = [
     ("Gemini (recommended primary)", "GEMINI_API_KEY", "https://aistudio.google.com/apikey"),
-    ("Groq (optional; enable only if your account shows free quota)", "GROQ_API_KEY", "https://console.groq.com/keys"),
+    ("Mistral (backup)", "MISTRAL_API_KEY", "https://console.mistral.ai/api-keys/"),
     ("OpenRouter (free-model backup)", "OPENROUTER_API_KEY", "https://openrouter.ai/settings/keys"),
-    ("Mistral (free-mode backup)", "MISTRAL_API_KEY", "https://console.mistral.ai/api-keys/"),
+    ("Groq (optional; quota depends on account)", "GROQ_API_KEY", "https://console.groq.com/keys"),
+    ("Anthropic Claude (optional; may require billing)", "ANTHROPIC_API_KEY", "https://console.anthropic.com/settings/keys"),
 ]
 
 def read_env():
@@ -49,25 +50,34 @@ def main():
     print("\n===== VENOM AI PROVIDER SETUP =====")
     print("Keys sirf is laptop ki .env file mein save hongi; GitHub par nahi.\n")
     for label, env_name, url in PROVIDERS:
-        current = values.get(env_name, "")
-        print(f"{label}: {'already configured' if current else 'not configured'}")
-        action = input("  Is provider ki key add/replace karni hai? [y/N]: ").strip().lower()
-        if action != "y":
+        key_names = [k for k, v in values.items()
+                     if v and (k == env_name or re.fullmatch(re.escape(env_name) + r"_\\d+", k))]
+        print(f"{label}: {len(key_names)} key(s) configured")
+        action = input("  [A]dd backup key, [R]eplace first key, [N]one? [N]: ").strip().lower()
+        if action not in ("a", "r"):
             continue
         print("  Browser mein provider dashboard khol raha hu. Key copy karke neeche paste kar.")
         webbrowser.open(url)
         secret = getpass.getpass("  API key (input hidden): ").strip()
-        if secret:
-            values[env_name] = secret
-            print("  Saved (key hidden).")
+        if not secret:
+            print("  Blank input; existing settings unchanged.")
+            continue
+        if action == "r" or not key_names:
+            target = env_name
         else:
-            print("  Blank input; existing setting unchanged.")
+            used = {int(k.rsplit("_", 1)[1]) for k in key_names if k != env_name}
+            suffix = 2
+            while suffix in used or f"{env_name}_{suffix}" in values:
+                suffix += 1
+            target = f"{env_name}_{suffix}"
+        values[target] = secret
+        print(f"  Saved as {target} (key hidden).")
     if not any(values.get(k) for _, k, _ in PROVIDERS):
         print("\nAbhi koi supported free AI key configure nahi hui.")
         return 1
     save_env(values, lines)
     print("\nSettings saved. Existing .env settings/data untouched.")
-    print("Next: start_venom.bat. Provider fallback automatic hai.")
+    print("Next: double-click 2_START_VENOM.bat. Provider fallback automatic hai.")
     return 0
 
 if __name__ == "__main__":
