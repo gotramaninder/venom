@@ -116,3 +116,37 @@ def test_openai_provider_route_uses_configured_adapter(monkeypatch, tmp_path):
     assert venom.ask("hello", keep=True) == "OpenAI route OK"
     assert venom._PROVIDER_HEALTH["openai"] == "online"
     assert venom.HISTORY_FILE.exists()
+
+
+
+def test_ask_cools_only_the_failing_key_then_fails_over(monkeypatch):
+    import venom
+
+    first, second = "key-a", "key-b"
+    monkeypatch.setattr(venom, "PROVIDERS", [("gemini", first), ("gemini", second)])
+    monkeypatch.setattr(venom, "_PROVIDER_COOLDOWN", {})
+    monkeypatch.setattr(venom, "_PROVIDER_HEALTH", {})
+    calls = []
+
+    def fake_gemini(key, system, contents, search):
+        calls.append(key)
+        if key == first:
+            raise RuntimeError("gemini HTTP 429")
+        return "backup response"
+
+    monkeypatch.setattr(venom, "call_gemini", fake_gemini)
+    assert venom.ask("hello", keep=False) == "backup response"
+    assert calls == [first, second]
+    assert venom._provider_key_id("gemini", first) in venom._PROVIDER_COOLDOWN
+    assert venom._provider_key_id("gemini", second) not in venom._PROVIDER_COOLDOWN
+
+
+def test_expired_provider_cooldown_recovers_to_ready(monkeypatch):
+    import venom
+
+    key = "key-a"
+    monkeypatch.setattr(venom, "PROVIDERS", [("gemini", key)])
+    monkeypatch.setattr(venom, "_PROVIDER_COOLDOWN", {venom._provider_key_id("gemini", key): 10})
+    monkeypatch.setattr(venom, "_PROVIDER_HEALTH", {"gemini": "cooldown"})
+    monkeypatch.setattr(venom.time, "time", lambda: 100)
+    assert venom.provider_status()[0]["status"] == "ready"
