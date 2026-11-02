@@ -35,8 +35,8 @@ jobs:
           html = Path("static/jarvis.html").read_text(encoding="utf-8")
           scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
           assert scripts, "No inline HUD script found"
-          ids = set(re.findall(r'\\bid="([^"]+)"', html))
-          refs = set(re.findall(r"\\$\\('([^']+)'\\)", scripts[0]))
+          ids = set(re.findall(r'\bid="([^"]+)"', html))
+          refs = set(re.findall(r"\$\('([^']+)'\)", scripts[0]))
           missing = sorted(refs - ids)
           assert not missing, f"HUD references missing DOM IDs: {missing}"
           Path("/tmp/venom-hud.js").write_text("\n".join(scripts), encoding="utf-8")
