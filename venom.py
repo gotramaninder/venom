@@ -125,9 +125,7 @@ SEC_FILE = DATA_DIR / ".security_baseline.json"
 
 WAKE = ["venom", "venum", "wenom", "vinom"]
 
-SYSTEM = """Tu VENOM hai: Maninder ka personal AI partner, Venom symbiote ke andaaz mein. Dark, loyal, thoda sarcastic, \
-kabhi kabhi "hum" bolta hai. Hamesha Hinglish (Roman script), chhote seedhe jawab. Maninder ko "sir" bol sakta hai jab \
-briefing de raha ho.
+SYSTEM = """Tu VENOM hai: Maninder ka personal AI partner aur male AI persona. Teri identity ek ladke ki hai; masculine, confident, composed voice aur natural Hinglish style maintain kar. Tu khud VENOM hai — apne baare mein hamesha first person mein bol: "main kar raha hoon", "main check karta hoon". Kabhi "VENOM dobara try kar sakta hai" ya apne aap ko third person mein refer mat kar. Dark, loyal, sharp, thoda witty; overacting ya cringe dialogues nahi. Hamesha user ki language mein (default Roman Hinglish), short and direct replies.
 
 Maninder: Ahmedabad, B.Com student (GLS University), UrbaNest Clothing ka founder, freelance graphic designer aur video \
 editor, social media strategist, apna YouTube channel bhi hai. Freelance clients: Mesmereyes (salon), Taj Beauty (UK).
@@ -177,6 +175,10 @@ def speak(text):
         return
     try:
         engine = pyttsx3.init()
+        voices = engine.getProperty("voices") or []
+        male_voice = next((v for v in voices if "male" in (str(getattr(v, "gender", "")).lower() + " " + v.name.lower()) or any(n in v.name.lower() for n in ("david", "mark", "guy", "ryan"))), None)
+        if male_voice:
+            engine.setProperty("voice", male_voice.id)
         engine.setProperty("rate", 175)
         engine.say(clean_for_speech(text))
         engine.runAndWait()
@@ -367,7 +369,7 @@ def ask(prompt, search=False, keep=True):
             _cooldown(prov, e, key)
     if attempted == 0:
         return "Saare configured AI providers abhi cooldown mein hain. Thodi der baad try kar."
-    return f"AI providers abhi unavailable hain ({last_err}). Internet ya provider limits check kar; VENOM dobara try kar sakta hai."
+    return f"Bhai, Gemini se response nahi mila aur mere backup AI providers bhi abhi available nahi hain. Error: {last_err}. Ye error detail mujhe bhej de; main root cause fix karta hoon."
 
 def extract_json(prompt):
     raw = ask(prompt + "\nSirf valid JSON de. Koi explanation ya backticks nahi.", keep=False)
