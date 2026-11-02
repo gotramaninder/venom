@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#04050a">
+<meta name="theme-color" content="#050506">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="/icon.png?s=180">
 <title>VENOM</title>
 <style>
-:root{--bg:#04050a;--fg:#e9eef5;--dim:#7a8597;--line:rgba(255,255,255,.14)}
+:root{--bg:#050506;--fg:#e9eef5;--dim:#7a8597;--line:rgba(255,255,255,.14)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
 canvas{position:fixed}
@@ -21,8 +21,8 @@ header{position:fixed;top:calc(14px + env(safe-area-inset-top));left:0;right:0;t
 #title{font-family:Consolas,monospace;font-size:clamp(22px,3.4vw,38px);letter-spacing:.55em;padding-left:.55em;font-weight:700;animation:glitch 6s infinite}
 #status{margin-top:6px;font-size:11px;letter-spacing:.25em;color:var(--dim)}
 @keyframes glitch{0%,92%,100%{text-shadow:0 0 14px rgba(255,255,255,.35);transform:none}
-93%{text-shadow:3px 0 #ff3b3b,-3px 0 #6ee7ff;transform:translateX(2px)}
-95%{text-shadow:-3px 0 #ff3b3b,3px 0 #6ee7ff;transform:translateX(-2px)}
+93%{text-shadow:3px 0 #ff3b3b,-3px 0 #FF334F;transform:translateX(2px)}
+95%{text-shadow:-3px 0 #ff3b3b,3px 0 #FF334F;transform:translateX(-2px)}
 97%{text-shadow:0 0 14px rgba(255,255,255,.35);transform:none}}
 #clock{position:fixed;top:16px;right:22px;z-index:3;font-family:Consolas,monospace;font-size:13px;color:var(--dim);letter-spacing:.15em}
 #ticker{display:none;position:fixed;top:calc(78px + env(safe-area-inset-top));left:0;right:0;text-align:center;z-index:3;font-size:11px;color:var(--dim);letter-spacing:.06em;padding:0 10px}
@@ -40,14 +40,14 @@ header{position:fixed;top:calc(14px + env(safe-area-inset-top));left:0;right:0;t
 #dock{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(820px,94vw);z-index:3}
 #log{height:150px;overflow-y:auto;border:1px solid var(--line);background:rgba(6,8,13,.72);backdrop-filter:blur(6px);padding:10px 14px;font-size:14px;line-height:1.55}
 #log .m{margin:4px 0;white-space:pre-wrap;word-break:break-word}
-#log .you{color:#9fb2c8}#log .you::before{content:"TU  ›  ";color:var(--dim);font-size:10px;letter-spacing:.2em}
-#log .ven{color:#fff}#log .ven::before{content:"VENOM  ›  ";color:#b388ff;font-size:10px;letter-spacing:.2em}
+#log .you{color:#E0A0AA}#log .you::before{content:"TU  ›  ";color:var(--dim);font-size:10px;letter-spacing:.2em}
+#log .ven{color:#fff}#log .ven::before{content:"VENOM  ›  ";color:#D10F2F;font-size:10px;letter-spacing:.2em}
 #interim{min-height:16px;font-size:11px;color:var(--dim);padding:3px 4px;letter-spacing:.05em}
 #ctl{display:flex;gap:6px;margin-top:4px}
 #txt{flex:1;min-width:0;background:rgba(6,8,13,.85);border:1px solid var(--line);color:#fff;padding:11px 12px;font-size:16px;outline:none}
 #txt:focus{border-color:#fff}
 button,select{cursor:pointer;background:rgba(255,255,255,.06);color:#fff;border:1px solid var(--line);padding:10px 12px;font-size:12px;letter-spacing:.1em;transition:.2s;font-family:inherit}
-select{max-width:150px;background:#0b0e16}
+select{max-width:150px;background:#171115}
 button:hover{background:#fff;color:#000}
 button.on{background:#fff;color:#000;font-weight:700}
 #row2{display:flex;flex-wrap:nowrap;gap:6px;margin-top:6px;overflow-x:auto;scrollbar-width:none}
@@ -128,7 +128,7 @@ const MODES={
  off:{c:[120,130,145],label:touch?'ORB PE TAP KAR AUR BOL':'VOICE OFF'},
  sleep:{c:[170,185,205],label:'STANDBY  ·  SAY "HEY VENOM"'},
  listening:{c:[235,245,255],label:'LISTENING'},
- thinking:{c:[179,136,255],label:'PROCESSING'},
+ thinking:{c:[209,15,47],label:'PROCESSING'},
  speaking:{c:[255,255,255],label:'SPEAKING  ·  TAP ORB TO STOP'},
  alert:{c:[255,59,59],label:'ALERT'}
 };
