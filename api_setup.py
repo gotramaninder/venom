@@ -12,6 +12,7 @@ PROVIDERS = [
     ("Mistral (backup)", "MISTRAL_API_KEY", "https://console.mistral.ai/api-keys/"),
     ("OpenRouter (free-model backup)", "OPENROUTER_API_KEY", "https://openrouter.ai/settings/keys"),
     ("Groq (optional; quota depends on account)", "GROQ_API_KEY", "https://console.groq.com/keys"),
+    ("OpenAI API (optional; usage is billed separately from ChatGPT)", "OPENAI_API_KEY", "https://platform.openai.com/api-keys"),
     ("Anthropic Claude (optional; may require billing)", "ANTHROPIC_API_KEY", "https://console.anthropic.com/settings/keys"),
 ]
 
