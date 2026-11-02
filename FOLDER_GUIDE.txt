@@ -1,0 +1,17 @@
+VENOM FOLDER GUIDE
+
+BAS YE YAAD RAKH:
+1. Pehli baar: 1_SETUP_VENOM.bat
+2. Roz chalane ke liye: 2_START_VENOM.bat
+3. API keys badalni hon: 3_API_SETUP.bat
+
+BAAKI .py FILES INTERNAL ENGINE HAIN. UNHE MOVE, DELETE YA RENAME MAT KARNA.
+
+data = clients, payments, leads, meetings, settings, chat history
+logs = error / activity logs
+outputs = generated files and uploaded media
+static = VENOM HUD screen
+.venv = Python environment (setup khud banata hai)
+.env = private API keys (GitHub par kabhi upload mat karna)
+
+Purane VENOM folder se naya setup karte waqt .env, data aur outputs ka backup zaroor rakhna.
