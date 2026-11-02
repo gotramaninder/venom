@@ -54,15 +54,25 @@ CLAUDE_MODEL = os.getenv("VENOM_CLAUDE_MODEL", "claude-sonnet-5-5")
 _PROVIDER_HEALTH = {}
 _PROVIDER_COOLDOWN = {}
 
+def _provider_key_id(provider, key):
+    return f"{provider}:{hashlib.sha256(key.encode('utf-8')).hexdigest()[:12]}"
+
 def provider_status():
     names = []
     for name, _key in PROVIDERS:
         if name not in names:
             names.append(name)
-    return [{"provider": name, "configured": True,
-             "status": _PROVIDER_HEALTH.get(name, "ready" if time.time() >= _PROVIDER_COOLDOWN.get(name, 0) else "cooldown"),
-             "retry_in": max(0, int(_PROVIDER_COOLDOWN.get(name, 0) - time.time()))}
-            for name in names]
+    now = time.time()
+    result = []
+    for name in names:
+        keys = [key for provider, key in PROVIDERS if provider == name]
+        cooling = [_PROVIDER_COOLDOWN.get(_provider_key_id(name, key), 0) for key in keys]
+        available = any(until <= now for until in cooling)
+        status = _PROVIDER_HEALTH.get(name, "ready" if available else "cooldown")
+        retry_in = min((int(until - now) for until in cooling if until > now), default=0)
+        result.append({"provider": name, "configured": True, "status": status,
+                       "retry_in": max(0, retry_in)})
+    return result
 
 PORTFOLIO_URL = os.getenv("PORTFOLIO_URL", "").strip()
 SIGNATURE = os.getenv("VENOM_SIGNATURE", "Maninder").strip() or "Maninder"
@@ -280,16 +290,22 @@ def call_claude(key, system, contents):
         raise RuntimeError(f"claude HTTP {r.status_code}")
     return "".join(b.get("text", "") for b in r.json()["content"]).strip()
 
-def _cooldown(provider, error):
+def _cooldown(provider, error, key=None):
     match = re.search(r"(?:HTTP\s*)?(\d{3})", str(error))
     code = int(match.group(1)) if match else 0
+    key_id = _provider_key_id(provider, key) if key else provider
     if code == 429:
-        _PROVIDER_COOLDOWN[provider] = time.time() + 60
+        _PROVIDER_COOLDOWN[key_id] = time.time() + 60
     elif code in (401, 403):
-        _PROVIDER_COOLDOWN[provider] = time.time() + 300
+        _PROVIDER_COOLDOWN[key_id] = time.time() + 300
     elif code >= 500 or not code:
-        _PROVIDER_COOLDOWN[provider] = time.time() + 30
-    _PROVIDER_HEALTH[provider] = "cooldown" if provider in _PROVIDER_COOLDOWN else "error"
+        _PROVIDER_COOLDOWN[key_id] = time.time() + 30
+    provider_keys = [k for p, k in PROVIDERS if p == provider]
+    all_cooling = bool(provider_keys) and all(
+        time.time() < _PROVIDER_COOLDOWN.get(_provider_key_id(provider, k), 0)
+        for k in provider_keys
+    )
+    _PROVIDER_HEALTH[provider] = "cooldown" if all_cooling else "degraded"
 
 def ask(prompt, search=False, keep=True):
     system = SYSTEM.replace("{now}", datetime.now().strftime("%A %d %B %Y, %I:%M %p"))
@@ -299,7 +315,8 @@ def ask(prompt, search=False, keep=True):
     last_err = ""
     attempted = 0
     for prov, key in PROVIDERS:
-        if time.time() < _PROVIDER_COOLDOWN.get(prov, 0):
+        key_id = _provider_key_id(prov, key)
+        if time.time() < _PROVIDER_COOLDOWN.get(key_id, 0):
             continue
         attempted += 1
         try:
@@ -319,7 +336,7 @@ def ask(prompt, search=False, keep=True):
                 answer = call_claude(key, system, c2)
             if answer:
                 _PROVIDER_HEALTH[prov] = "online"
-                _PROVIDER_COOLDOWN.pop(prov, None)
+                _PROVIDER_COOLDOWN.pop(key_id, None)
                 if keep:
                     history.append({"role": "user", "parts": [{"text": prompt}]})
                     history.append({"role": "model", "parts": [{"text": answer}]})
@@ -329,7 +346,7 @@ def ask(prompt, search=False, keep=True):
             last_err = f"{prov}: empty response"
         except requests.RequestException as e:
             last_err = f"{prov}: network error"
-            _cooldown(prov, e)
+            _cooldown(prov, e, key)
         except Exception as e:
             last_err = f"{prov}: {e}"
             _cooldown(prov, e)
