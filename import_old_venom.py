@@ -51,19 +51,22 @@ def main():
                     existing_keys.add(key)
             if additions:
                 with new_env.open("a", encoding="utf-8") as f:
-                    f.write("\\n" + "\\n".join(additions) + "\\n")
+                    f.write("\n" + "\n".join(additions) + "\n")
                 copied.append(".env (missing settings merged; current values kept)")
             else:
                 kept.append(".env (current values kept)")
 
     old_data = old / "data"
-    source_data = old_data if old_data.is_dir() else old
     for name in sorted(DATA_FILES):
-        result = copy_missing(source_data / name, DATA / name)
-        if result == "copied":
-            copied.append("data/" + name)
-        elif result == "kept-existing":
-            kept.append("data/" + name)
+        candidates = [old_data / name, old / name] if old_data.is_dir() else [old / name]
+        for source in candidates:
+            result = copy_missing(source, DATA / name)
+            if result == "copied":
+                copied.append("data/" + name)
+                break
+            if result == "kept-existing":
+                kept.append("data/" + name)
+                break
 
     old_outputs = old / "outputs"
     if old_outputs.is_dir():
