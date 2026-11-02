@@ -1,23 +1,21 @@
-# Secrets and local user data
+# Secrets
 .env
 .env.*
 !.env.example
 *.pem
 *.key
-history.json
-clients.json
-leads.json
-queue.json
-briefs.json
-meetings.json
-rates.json
-notes.txt
-.sessions.json
-.push.json
-.integrity.json
-.security_baseline.json
-venom.log
-outputs/
-uploads/
+
+# Local user/business data
+data/*
+!data/.gitkeep
+outputs/*
+!outputs/.gitkeep
+logs/*
+!logs/.gitkeep
+
+# Local environment and caches
+.venv/
+venv/
 __pycache__/
 *.py[cod]
+*.log
