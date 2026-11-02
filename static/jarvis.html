@@ -1,473 +1,83 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#050506">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/icon.png?s=180">
-<title>VENOM</title>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07090d">
+<link rel="manifest" href="/manifest.json"><title>VENOM // COMMAND CENTER</title>
 <style>
-:root{--bg:#050506;--fg:#e9eef5;--dim:#7a8597;--line:rgba(255,255,255,.14)}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
-canvas{position:fixed}
-#bg{inset:0;z-index:0}
-#hud{left:50%;top:50%;transform:translate(-50%,-62%);z-index:1;cursor:pointer}
-header{position:fixed;top:calc(14px + env(safe-area-inset-top));left:0;right:0;text-align:center;z-index:3;pointer-events:none}
-#title{font-family:Consolas,monospace;font-size:clamp(22px,3.4vw,38px);letter-spacing:.55em;padding-left:.55em;font-weight:700;animation:glitch 6s infinite}
-#status{margin-top:6px;font-size:11px;letter-spacing:.25em;color:var(--dim)}
-@keyframes glitch{0%,92%,100%{text-shadow:0 0 14px rgba(255,255,255,.35);transform:none}
-93%{text-shadow:3px 0 #ff3b3b,-3px 0 #FF334F;transform:translateX(2px)}
-95%{text-shadow:-3px 0 #ff3b3b,3px 0 #FF334F;transform:translateX(-2px)}
-97%{text-shadow:0 0 14px rgba(255,255,255,.35);transform:none}}
-#clock{position:fixed;top:16px;right:22px;z-index:3;font-family:Consolas,monospace;font-size:13px;color:var(--dim);letter-spacing:.15em}
-#ticker{display:none;position:fixed;top:calc(78px + env(safe-area-inset-top));left:0;right:0;text-align:center;z-index:3;font-size:11px;color:var(--dim);letter-spacing:.06em;padding:0 10px}
-.panel{position:fixed;z-index:3;top:96px;width:240px;border:1px solid var(--line);background:rgba(8,10,16,.55);backdrop-filter:blur(6px);padding:14px 16px;font-size:12px}
-.panel::before,.panel::after{content:"";position:absolute;width:12px;height:12px;border:2px solid #fff;opacity:.75}
-.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
-.panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
-#left{left:22px}#right{right:22px}
-.panel h3{font-size:10px;letter-spacing:.35em;color:var(--dim);margin-bottom:10px;font-weight:600}
-.row{display:flex;justify-content:space-between;margin:7px 0;letter-spacing:.06em}
-.row b{font-family:Consolas,monospace;font-weight:600}
-.bar{height:4px;background:rgba(255,255,255,.1);margin:3px 0 9px;overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:#fff;transition:width .8s}
-#brief{margin-top:8px;color:var(--dim);font-size:11px;line-height:1.5;max-height:120px;overflow:auto}
-#dock{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(820px,94vw);z-index:3}
-#log{height:150px;overflow-y:auto;border:1px solid var(--line);background:rgba(6,8,13,.72);backdrop-filter:blur(6px);padding:10px 14px;font-size:14px;line-height:1.55}
-#log .m{margin:4px 0;white-space:pre-wrap;word-break:break-word}
-#log .you{color:#E0A0AA}#log .you::before{content:"TU  ›  ";color:var(--dim);font-size:10px;letter-spacing:.2em}
-#log .ven{color:#fff}#log .ven::before{content:"VENOM  ›  ";color:#D10F2F;font-size:10px;letter-spacing:.2em}
-#interim{min-height:16px;font-size:11px;color:var(--dim);padding:3px 4px;letter-spacing:.05em}
-#ctl{display:flex;gap:6px;margin-top:4px}
-#txt{flex:1;min-width:0;background:rgba(6,8,13,.85);border:1px solid var(--line);color:#fff;padding:11px 12px;font-size:16px;outline:none}
-#txt:focus{border-color:#fff}
-button,select{cursor:pointer;background:rgba(255,255,255,.06);color:#fff;border:1px solid var(--line);padding:10px 12px;font-size:12px;letter-spacing:.1em;transition:.2s;font-family:inherit}
-select{max-width:150px;background:#171115}
-button:hover{background:#fff;color:#000}
-button.on{background:#fff;color:#000;font-weight:700}
-#row2{display:flex;flex-wrap:nowrap;gap:6px;margin-top:6px;overflow-x:auto;scrollbar-width:none}
-#row2::-webkit-scrollbar{display:none}
-#row2 button{padding:6px 10px;font-size:11px;color:var(--dim);white-space:nowrap}
-#row2 button:hover{color:#000}
-#boot{position:fixed;inset:0;z-index:20;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .9s}
-#boot h1{font-family:Consolas,monospace;letter-spacing:.7em;padding-left:.7em;font-size:clamp(28px,6vw,60px);animation:glitch 4s infinite}
-#bootlines{font-family:Consolas,monospace;font-size:12px;color:var(--dim);min-height:90px;line-height:1.8;text-align:left}
-#enter{font-size:13px;padding:14px 34px;letter-spacing:.35em}
-#cd{position:fixed;inset:0;z-index:30;background:rgba(80,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px}
-#cd .n{font-family:Consolas,monospace;font-size:clamp(80px,18vw,200px);color:#ff3b3b}
-#cd p{letter-spacing:.3em;font-size:13px}
-@media(max-width:1000px){.panel{display:none}#ticker{display:block}#log{height:120px}#clock{display:none}}
-</style>
-</head>
-<body>
-<canvas id="bg"></canvas>
-<canvas id="hud"></canvas>
-<header><div id="title">VENOM</div><div id="status">OFFLINE</div></header>
-<div id="clock"></div>
-<div id="ticker"></div>
-
-<aside class="panel" id="left">
-  <h3>SYSTEM</h3>
-  <div class="row"><span>CPU</span><b id="cpu">--</b></div><div class="bar"><i id="cpub"></i></div>
-  <div class="row"><span>RAM</span><b id="ram">--</b></div><div class="bar"><i id="ramb"></i></div>
-  <div class="row"><span>BATTERY</span><b id="bat">--</b></div>
-  <div class="row"><span>NETWORK</span><b id="net">--</b></div>
-  <div class="row"><span>AI KEYS</span><b id="keys">--</b></div>
-  <div class="row"><span>PHONE ALERTS</span><b id="pa">--</b></div>
-  <div class="row"><span>VOICE</span><b id="vstate">OFF</b></div>
-</aside>
-<aside class="panel" id="right">
-  <h3>TODAY</h3>
-  <div class="row"><span>IS MAHINE AAYA</span><b id="rec">--</b></div>
-  <div class="row"><span>BAAKI</span><b id="pend">--</b></div>
-  <div class="row"><span>NAYE LEADS</span><b id="leads">--</b></div>
-  <div class="row"><span>APPROVAL WAIT</span><b id="queue">--</b></div>
-  <div class="row"><span>NEXT MEETING</span></div>
-  <div id="meet" style="font-size:11px;color:var(--dim)">—</div>
-  <div id="brief"></div>
-</aside>
-
-<div id="dock">
-  <div id="log"></div>
-  <div id="interim"></div>
-  <div id="ctl">
-    <button id="attach" title="Design / video bhej">📎</button>
-    <input id="txt" placeholder="Type kar ya orb pe tap karke bol..." autocomplete="off" enterkeyhint="send">
-    <button id="send">SEND</button>
-    <button id="talk" title="Ek baar bol">🎙</button>
-    <button id="voice">VOICE: OFF</button>
-    <button id="spk" class="on" title="Jawab bolke sunana">🔊</button>
-  </div>
-  <div id="row2"><select id="lang"></select></div>
-  <input type="file" id="file" accept="image/*,video/*" hidden>
-</div>
-
-<div id="boot">
-  <h1>VENOM</h1>
-  <div id="bootlines"></div>
-  <button id="enter">TAP TO ACTIVATE</button>
-</div>
-<div id="cd"><p>LAPTOP SHUTDOWN</p><div class="n" id="cdn">15</div><button id="cdc">CANCEL</button></div>
-
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
+:root{--bg:#07090d;--panel:#0e131c;--red:#e11d3f;--hot:#ff3154;--fg:#f2f4f7;--muted:#7e8998;--line:rgba(255,255,255,.085);--green:#71e0ac;--mono:'DM Mono',Consolas,monospace;--display:'Barlow Condensed','Arial Narrow',sans-serif;--sans:Inter,'Segoe UI',sans-serif}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:var(--sans)}body{background:radial-gradient(ellipse at 58% 36%,rgba(120,12,38,.17),transparent 38%),linear-gradient(130deg,#080a0f,#06070a 65%,#0b080c)}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--hot);outline-offset:3px}
+#particles{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.5}.scan{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.1;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.03) 4px)}
+.shell{position:relative;z-index:2;min-height:100vh;display:grid;grid-template-columns:230px minmax(0,1fr);max-width:1800px;margin:auto}
+aside{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);background:rgba(7,9,13,.82);backdrop-filter:blur(20px);padding:25px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:12px;padding:0 8px 30px}.mark{width:39px;height:39px;border:1px solid rgba(255,49,84,.6);border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(225,29,63,.32),transparent);font:800 25px var(--display);box-shadow:0 0 25px rgba(225,29,63,.2)}.brand b{font:800 27px var(--display);letter-spacing:.2em}.brand small{display:block;font:9px var(--mono);color:var(--muted);letter-spacing:.15em;margin-top:3px}
+.navlabel{font:9px var(--mono);letter-spacing:.2em;color:#626d7b;padding:0 12px;margin:12px 0}.nav{display:grid;gap:5px}.nav button{border:1px solid transparent;background:transparent;color:#929cab;border-radius:8px;padding:12px;text-align:left;font-size:11px;transition:.2s}.nav button span{display:inline-block;width:25px;color:var(--hot);font-size:15px}.nav button:hover,.nav button.active{background:rgba(225,29,63,.1);border-color:rgba(225,29,63,.2);color:#fff}.nav button.active{box-shadow:inset 2px 0 var(--red)}
+.sidefoot{margin-top:auto;border:1px solid var(--line);border-radius:10px;padding:13px;font:9px var(--mono);color:var(--muted);line-height:1.7}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#596372;margin-right:7px}.dot.live{background:var(--green);box-shadow:0 0 10px var(--green)}
+main{padding:23px clamp(16px,3vw,44px) 42px;min-width:0}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:26px}.crumb{font:10px var(--mono);letter-spacing:.16em;color:#929cab}.crumb b{color:var(--hot)}.actions{display:flex;align-items:center;gap:9px}.clock{font:11px var(--mono);color:#a0a9b5;margin-right:6px}
+.btn{border:1px solid var(--line);border-radius:7px;padding:10px 13px;background:rgba(255,255,255,.035);color:#d9dfe7;font-size:10px;letter-spacing:.08em;transition:.2s}.btn:hover{border-color:rgba(255,49,84,.5);background:rgba(225,29,63,.1);color:#fff}.btn.hot{background:linear-gradient(135deg,#a90f2e,#e52849);border-color:#e52849;color:white;box-shadow:0 7px 24px rgba(225,29,63,.18)}.btn:disabled{opacity:.4;cursor:wait}
+.page{display:none;animation:appear .3s ease}.page.active{display:block}@keyframes appear{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.eyebrow{font:10px var(--mono);letter-spacing:.22em;color:var(--hot)}.hero{display:flex;justify-content:space-between;gap:20px;margin:7px 0 24px}.hero h1{font:800 clamp(39px,5vw,62px)/.92 var(--display);letter-spacing:.025em;margin:12px 0}.hero h1 em{font-style:normal;color:var(--hot);text-shadow:0 0 28px rgba(225,29,63,.25)}.hero p{font-size:12px;line-height:1.7;color:#8792a1;max-width:570px}.tag{align-self:flex-start;white-space:nowrap;border:1px solid var(--line);border-radius:6px;padding:9px 12px;font:9px var(--mono);letter-spacing:.12em;color:#aab3bf}.tag i{color:var(--green);font-style:normal}
+.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(270px,.9fr);gap:14px}.card{position:relative;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,rgba(17,22,31,.92),rgba(9,12,18,.9));overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.17)}.card:before{content:"";position:absolute;top:0;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,49,84,.5),transparent)}.head{display:flex;justify-content:space-between;padding:16px 18px 0;font:9px var(--mono);letter-spacing:.16em;color:#9aa4b1}.index{color:#586372}
+.corecard{min-height:355px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 18px 20px}.reactor{position:relative;width:min(315px,75vw);aspect-ratio:1;display:grid;place-items:center}.reactor:before{content:"";position:absolute;inset:9%;border-radius:50%;background:radial-gradient(circle,rgba(225,29,63,.2),transparent 68%);filter:blur(12px);animation:glow 3s infinite}.rings{position:absolute;inset:3%;border:1px solid rgba(255,49,84,.4);border-radius:50%;animation:spin 26s linear infinite}.rings:before,.rings:after{content:"";position:absolute;border:1px dashed rgba(255,255,255,.23);border-radius:50%;inset:10%}.rings:after{inset:20%;border:2px solid rgba(255,49,84,.55)}.reactor svg{position:relative;width:76%;filter:drop-shadow(0 0 20px rgba(225,29,63,.35));animation:float 5s ease-in-out infinite}.core{position:absolute;width:19%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 38% 32%,white 0,#ff9eaf 18%,#e11d3f 42%,#530b20 72%,transparent 74%);box-shadow:0 0 17px #ff3154,0 0 48px rgba(225,29,63,.8),0 0 95px rgba(225,29,63,.4);animation:beat 1.8s ease-in-out infinite}.corelabel{position:absolute;bottom:0;text-align:center;font:9px var(--mono);letter-spacing:.2em;color:#8f9aa8}.corelabel strong{display:block;color:white;font-size:11px;font-weight:500;margin-top:5px}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes beat{50%{transform:scale(1.2);filter:brightness(1.3)}}@keyframes glow{50%{opacity:.55;transform:scale(1.12)}}@keyframes float{50%{transform:translateY(-5px)}}
+.corestatus{font:10px var(--mono);letter-spacing:.14em;color:#b2bac5;display:flex;align-items:center;gap:8px;margin-top:8px}.coreactions{display:flex;gap:8px;margin-top:14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{padding:15px;min-height:108px}.stat label{font:9px var(--mono);letter-spacing:.13em;color:#8e99a7}.value{font:700 29px var(--display);margin-top:11px}.sub{font:9px var(--mono);color:#6e7987;margin-top:2px}.meter{height:3px;background:rgba(255,255,255,.07);margin-top:11px}.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8e102b,#ff3154);transition:width .6s}
+.lower{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-top:14px}.quick,.activity{padding:17px 18px}.quickgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.quickbtn{min-height:67px;text-align:left;padding:10px;border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.025);color:#e1e5eb;transition:.2s}.quickbtn:hover{transform:translateY(-2px);border-color:rgba(225,29,63,.5);background:rgba(225,29,63,.08)}.quickbtn b{display:block;font-size:10px}.quickbtn small{display:block;font:8px var(--mono);color:#7d8997;margin-top:6px}
+.feed{display:grid;gap:12px;margin-top:15px}.feeditem{display:flex;gap:9px;color:#aeb7c2;font-size:10px;line-height:1.5}.feeditem:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--hot);box-shadow:0 0 9px var(--hot);margin-top:4px;flex:none}.feeditem small{display:block;color:#647080;font:8px var(--mono);margin-top:3px}
+.pagehead{margin-bottom:20px}.pagehead h1{font:800 48px var(--display);margin:10px 0}.pagehead h1 em{font-style:normal;color:var(--hot)}.pagehead p{font-size:12px;color:#8792a1;line-height:1.7}
+.chatlayout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px}.chatbox{min-height:570px;display:flex;flex-direction:column}.chathead{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;font:10px var(--mono);letter-spacing:.13em}.stream{flex:1;min-height:380px;max-height:60vh;overflow:auto;padding:17px;display:flex;flex-direction:column;gap:12px}.msg{max-width:88%;padding:11px 13px;border-radius:9px;font-size:11px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}.msg.you{align-self:flex-end;background:rgba(225,29,63,.13);border:1px solid rgba(225,29,63,.25)}.msg.ven{align-self:flex-start;background:rgba(255,255,255,.045);border:1px solid var(--line)}.msg small{display:block;color:var(--hot);font:8px var(--mono);letter-spacing:.14em;margin-bottom:6px}.compose{display:flex;gap:7px;padding:13px;border-top:1px solid var(--line)}.compose input{flex:1;min-width:0;background:#090d13;border:1px solid var(--line);border-radius:7px;color:white;padding:12px;font-size:11px}.chatside{display:grid;align-content:start;gap:12px}.sidecard{padding:15px}.sidecard h3{font:9px var(--mono);letter-spacing:.15em;color:#aab3bf;margin:0}.providers{display:grid;gap:10px;margin-top:14px}.provider{display:flex;justify-content:space-between;font-size:10px;color:#cbd2da}.provider small{font:8px var(--mono);color:var(--green)}
+.studiogrid,.systemgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px}.tile{padding:18px;min-height:165px}.tile .symbol{font-size:22px;color:var(--hot)}.tile h3{font:700 20px var(--display);letter-spacing:.06em;margin:12px 0 5px}.tile p{font-size:10px;line-height:1.6;color:#8792a1;min-height:46px}.tile button{margin-top:8px}.systemgrid{grid-template-columns:repeat(2,1fr)}.syscard{padding:18px}.syscard h3{font:9px var(--mono);letter-spacing:.15em;color:#aab3bf;margin:0 0 13px}.sysrow{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:10px;color:#8994a2}.sysrow b{font:10px var(--mono);color:#edf0f4;text-align:right}
+.modalback{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.74);backdrop-filter:blur(8px);display:none;place-items:center;padding:18px}.modalback.open{display:grid}.modal{width:min(520px,100%);max-height:80vh;overflow:auto;padding:21px;border:1px solid rgba(225,29,63,.35);border-radius:13px;background:#0c1017;box-shadow:0 30px 100px #000}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.modal h2{font:700 25px var(--display);letter-spacing:.1em;margin:0}.modal p{font-size:11px;color:#929dab;line-height:1.7}.toast{position:fixed;right:20px;bottom:20px;z-index:40;max-width:90vw;padding:12px 15px;border:1px solid rgba(225,29,63,.4);border-radius:8px;background:#151b25;color:#eef1f5;font-size:10px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:none}
+#boot{position:fixed;inset:0;z-index:30;background:#050609;display:grid;place-items:center;transition:opacity .7s}.bootbox{text-align:center}.bootlogo{font:800 clamp(54px,9vw,96px) var(--display);letter-spacing:.22em;text-shadow:0 0 35px rgba(225,29,63,.4)}.bootlogo span{color:var(--hot)}.bootline{font:9px var(--mono);letter-spacing:.2em;color:#788392;margin:17px}.progress{height:2px;width:240px;background:#262d37;margin:auto}.progress i{display:block;width:0;height:100%;background:var(--hot);box-shadow:0 0 12px var(--hot);transition:width .4s}
+@media(max-width:1050px){.shell{grid-template-columns:195px 1fr}.grid{grid-template-columns:1fr}.corecard{min-height:330px}.stats{grid-template-columns:repeat(4,1fr)}.lower{grid-template-columns:1fr}.chatlayout{grid-template-columns:1fr}.chatside{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.shell{display:block}aside{position:fixed;top:auto;bottom:0;left:0;right:0;width:100%;height:auto;padding:6px 6px calc(6px + env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);z-index:10;background:rgba(7,9,13,.96)}.brand,.navlabel,.sidefoot{display:none}.nav{display:flex;justify-content:space-around;gap:3px}.nav button{flex:1;text-align:center;padding:8px 2px;font-size:8px}.nav button span{display:block;width:auto;font-size:15px}.nav button.active{box-shadow:inset 0 2px var(--red)}main{padding:15px 13px calc(90px + env(safe-area-inset-bottom))}.top{margin-bottom:18px}.clock{display:none}.hero{display:block}.hero h1{font-size:44px}.tag{display:inline-block;margin-top:10px}.reactor{width:min(270px,74vw)}.corecard{min-height:320px}.stats{grid-template-columns:1fr 1fr}.quickgrid{grid-template-columns:1fr 1fr}.studiogrid{grid-template-columns:1fr 1fr}.systemgrid{grid-template-columns:1fr}.chatside{grid-template-columns:1fr}.stream{min-height:330px;max-height:52vh}.compose{flex-wrap:wrap}.compose input{flex-basis:65%}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style></head><body>
+<canvas id="particles"></canvas><div class="scan"></div>
+<div class="shell">
+<aside><div class="brand"><div class="mark">V</div><div><b>VENOM</b><small>PERSONAL AI SYSTEM</small></div></div><div class="navlabel">COMMAND INTERFACE</div>
+<nav class="nav"><button class="active" data-page="overview"><span>◈</span>Overview</button><button data-page="assistant"><span>⌁</span>Assistant</button><button data-page="studio"><span>✳</span>Creative Studio</button><button data-page="system"><span>⌘</span>System</button></nav>
+<div class="sidefoot"><span class="dot" id="connDot"></span>CORE CONNECTION<br><span id="connText">Waiting for local engine…</span><br><br>BUILD 03.11 // LOCAL-FIRST</div></aside>
+<main><div class="top"><div class="crumb">VENOM <b>//</b> <span id="crumb">OVERVIEW</span></div><div class="actions"><span class="clock" id="clock">--:--:--</span><button class="btn" id="settings">⚙ SETTINGS</button><button class="btn hot" id="voice">◉ VOICE OFF</button></div></div>
+<section class="page active" id="page-overview">
+<div class="hero"><div><div class="eyebrow">YOUR PERSONAL COMMAND CENTER</div><h1>THE SYSTEM IS<br><em>YOURS TO COMMAND.</em></h1><p>One intelligence layer for your work, ideas, files and everyday operations. Local control. Your rules. Your call.</p></div><div class="tag"><i>●</i> LOCAL ENGINE / <span id="heroState">CONNECTING</span></div></div>
+<div class="grid"><article class="card corecard"><div class="head" style="width:100%"><span>NEURAL CORE // LIVE VISUALIZER</span><span class="index">V-01</span></div><div class="reactor"><div class="rings"></div><svg viewBox="0 0 300 300" fill="none"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffc1cb"/><stop offset=".5" stop-color="#e11d3f"/><stop offset="1" stop-color="#560d22"/></linearGradient></defs><circle cx="150" cy="150" r="139" stroke="url(#rg)" opacity=".7"/><circle cx="150" cy="150" r="123" stroke="#ff3154" stroke-dasharray="2 8" opacity=".7"/><path d="M150 24 177 75 225 75 225 123 276 150 225 177 225 225 177 225 150 276 123 225 75 225 75 177 24 150 75 123 75 75 123 75Z" stroke="url(#rg)" stroke-width="2"/><circle cx="150" cy="150" r="76" stroke="#ff3154" stroke-width="2"/><path d="m150 89 54 92H96Z M150 211 96 119h108Z" stroke="#ff8298" stroke-width="1.5"/></svg><div class="core"></div><div class="corelabel">VENOM NEURAL CORE<strong id="coreMode">STANDBY</strong></div></div><div class="corestatus"><span class="dot" id="coreDot"></span><span id="coreStatus">AWAITING COMMAND</span></div><div class="coreactions"><button class="btn hot" id="talk">🎙 PUSH TO TALK</button><button class="btn" id="openChat">OPEN CONSOLE ↗</button></div></article>
+<div class="stats"><article class="card stat"><label>CPU LOAD</label><div class="value" id="cpu">--%</div><div class="sub">SYSTEM PROCESSOR</div><div class="meter"><i id="cpuBar"></i></div></article><article class="card stat"><label>MEMORY</label><div class="value" id="ram">--%</div><div class="sub">RAM UTILIZATION</div><div class="meter"><i id="ramBar"></i></div></article><article class="card stat"><label>AI PROVIDERS</label><div class="value" id="keys">0</div><div class="sub" id="providerFoot">CONFIGURED KEYS</div></article><article class="card stat"><label>BATTERY</label><div class="value" id="battery">--</div><div class="sub" id="batteryFoot">POWER STATUS</div></article></div></div>
+<div class="lower"><article class="card quick"><div class="head" style="padding:0"><span>QUICK DEPLOY // COMMAND SHORTCUTS</span><span class="index">06 ACTIONS</span></div><div class="quickgrid"><button class="quickbtn" data-command="security check"><b>⌑ Security scan</b><small>CHECK DEVICE HEALTH</small></button><button class="quickbtn" data-command="meetings kab hai"><b>◷ My schedule</b><small>UPCOMING MEETINGS</small></button><button class="quickbtn" data-command="payment pending list"><b>₹ Payments</b><small>OUTSTANDING DUES</small></button><button class="quickbtn" data-command="trends dhundo reels aur design ke"><b>↗ Trend scout</b><small>CONTENT SIGNALS</small></button><button class="quickbtn" data-command="7 din ka content plan bana"><b>✳ Content plan</b><small>WEEKLY PLAN</small></button><button class="quickbtn" data-command="notification test"><b>⌁ Phone ping</b><small>TEST ALERT CHANNEL</small></button></div></article><article class="card activity"><div class="head" style="padding:0"><span>LIVE INTELLIGENCE</span><span class="index">STATUS FEED</span></div><div class="feed" id="feed"><div class="feeditem">Initializing local engine…</div></div><div class="sub" style="margin-top:16px">NEXT MEETING: <span id="meeting">—</span></div></article></div>
+</section>
+<section class="page" id="page-assistant"><div class="pagehead"><div class="eyebrow">DIRECT NEURAL LINK</div><h1>TALK TO <em>VENOM.</em></h1><p>Ask, plan, research, organize or trigger a system action. Sensitive actions still require confirmation.</p></div><div class="chatlayout"><article class="card chatbox"><div class="chathead"><span>COMMAND CONSOLE</span><span>SESSION ACTIVE</span></div><div class="stream" id="stream"><div class="msg ven"><small>VENOM // CORE</small>System online. What are we building today?</div></div><div class="compose"><button class="btn" id="upload">＋</button><input id="message" placeholder="Type a command or ask anything…"><button class="btn hot" id="send">SEND ↗</button><button class="btn" id="ptt">🎙</button></div></article><div class="chatside"><article class="card sidecard"><h3>AI ROUTING STATUS</h3><div class="providers" id="providers"><div class="provider"><span>No providers detected</span><small>—</small></div></div></article><article class="card sidecard"><h3>TRY A COMMAND</h3><div class="providers"><button class="btn" data-command="mere aaj ke top 3 kaam batao">Today's priorities ↗</button><button class="btn" data-command="reel idea aur script bana">Create a reel ↗</button><button class="btn" data-command="client status batao">Client overview ↗</button></div></article></div></div></section>
+<section class="page" id="page-studio"><div class="pagehead"><div class="eyebrow">CREATIVE OPERATIONS</div><h1>MAKE IT <em>HAPPEN.</em></h1><p>Launch real workflows through the VENOM engine. Choose a workflow and add your details in the command console.</p></div><div class="studiogrid"><article class="card tile"><div class="symbol">▧</div><h3>CONTENT CALENDAR</h3><p>Build a weekly plan for reels, posts, stories and campaigns.</p><button class="btn" data-command="7 din ka content calendar bana for my brand">GENERATE PLAN ↗</button></article><article class="card tile"><div class="symbol">▶</div><h3>REEL BLUEPRINT</h3><p>Hooks, timed script, shot list, edit notes, caption and CTA.</p><button class="btn" data-command="reel idea aur full script bana for my next video">BUILD REEL ↗</button></article><article class="card tile"><div class="symbol">✎</div><h3>CAPTION LAB</h3><p>Multiple caption directions, hashtags and pinned comment ideas.</p><button class="btn" data-command="caption aur hashtags ke 3 versions bana">WRITE CAPTIONS ↗</button></article><article class="card tile"><div class="symbol">⌕</div><h3>PROFILE AUDIT</h3><p>Audit a social profile and create practical improvements.</p><button class="btn" data-command="growth audit karo mere Instagram profile ka">RUN AUDIT ↗</button></article><article class="card tile"><div class="symbol">◉</div><h3>DESIGN REVIEW</h3><p>Attach an image or video for visual critique and improvements.</p><button class="btn" id="studioUpload">ATTACH MEDIA ↗</button></article><article class="card tile"><div class="symbol">⌁</div><h3>RESEARCH DESK</h3><p>Research a niche, trend, competitor or campaign with sources.</p><button class="btn" data-command="research latest trends in social media design and video editing with sources">START RESEARCH ↗</button></article></div></section>
+<section class="page" id="page-system"><div class="pagehead"><div class="eyebrow">DEVICE + PROVIDER TELEMETRY</div><h1>SYSTEM <em>INTELLIGENCE.</em></h1><p>Live readings from the local VENOM server. Provider secrets are never shown here.</p></div><div class="systemgrid"><article class="card syscard"><h3>DEVICE TELEMETRY</h3><div class="sysrow"><span>CPU LOAD</span><b id="sysCpu">—</b></div><div class="sysrow"><span>MEMORY</span><b id="sysRam">—</b></div><div class="sysrow"><span>BATTERY</span><b id="sysBattery">—</b></div><div class="sysrow"><span>NETWORK</span><b id="sysNetwork">—</b></div></article><article class="card syscard"><h3>VENOM SERVICES</h3><div class="sysrow"><span>LOCAL ENGINE</span><b id="sysEngine">CHECKING</b></div><div class="sysrow"><span>AI KEYS</span><b id="sysKeys">—</b></div><div class="sysrow"><span>PHONE ALERTS</span><b id="sysPhone">—</b></div><div class="sysrow"><span>REMOTE ACCESS</span><b id="sysRemote">—</b></div></article><article class="card syscard"><h3>BUSINESS SNAPSHOT</h3><div class="sysrow"><span>RECEIVED THIS MONTH</span><b id="sysReceived">—</b></div><div class="sysrow"><span>PAYMENTS PENDING</span><b id="sysPending">—</b></div><div class="sysrow"><span>NEW LEADS</span><b id="sysLeads">—</b></div><div class="sysrow"><span>APPROVAL QUEUE</span><b id="sysQueue">—</b></div></article><article class="card syscard"><h3>CONFIGURATION</h3><p style="font-size:11px;color:#929dab;line-height:1.7">Manage provider keys using the local API setup wizard. Never paste API secrets into this browser screen.</p><button class="btn hot" id="apiGuide" style="margin-top:14px">OPEN API SETUP GUIDE ↗</button></article></div></section>
+</main></div>
+<input type="file" id="file" accept="image/*,video/*" hidden>
+<div class="modalback" id="modal"><div class="modal"><div class="modalhead"><h2>VENOM SETTINGS</h2><button class="btn" id="closeModal">✕</button></div><p>Provider secrets stay in your local .env file. Use 3_API_SETUP.bat in the project folder to add or rotate keys. Free-tier quotas depend on provider accounts.</p><div class="providers" id="modalProviders"></div><div style="margin-top:18px"><button class="btn hot" id="modalGuide">OPEN API SETUP GUIDE ↗</button><button class="btn" id="modalRefresh">REFRESH STATUS</button></div></div></div>
+<div class="toast" id="toast"></div><div id="boot"><div class="bootbox"><div class="bootlogo">VEN<span>OM</span></div><div class="bootline" id="bootLine">INITIALIZING NEURAL INTERFACE</div><div class="progress"><i id="progress"></i></div></div></div>
 <script>
-const TOKEN="__TOKEN__";
-const $=id=>document.getElementById(id);
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-const touch=matchMedia('(pointer:coarse)').matches;
-const LS={get:(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
-let lang=LS.get('lang','hi-IN'),speakOn=LS.get('speak','1')==='1';
-let mode='off',voiceOn=false,awake=false,speaking=false,busy=false,ptt=false,skipReplies=false;
-let lastActive=Date.now(),rec=null,audioCtx=null,an=null,micBuf=null,micStream=null,micLevel=0,cdTimer=null,speakGen=0,wl=null;
-const alertQ=[];
-const MODES={
- off:{c:[120,130,145],label:touch?'ORB PE TAP KAR AUR BOL':'VOICE OFF'},
- sleep:{c:[170,185,205],label:'STANDBY  ·  SAY "HEY VENOM"'},
- listening:{c:[235,245,255],label:'LISTENING'},
- thinking:{c:[209,15,47],label:'PROCESSING'},
- speaking:{c:[255,255,255],label:'SPEAKING  ·  TAP ORB TO STOP'},
- alert:{c:[255,59,59],label:'ALERT'}
-};
-function setMode(m){mode=m;$('status').textContent=MODES[m].label;$('vstate').textContent=voiceOn?(awake?'ACTIVE':'STANDBY'):(touch?'TAP':'OFF');}
-
-/* ---------- languages ---------- */
-const LANGS=[['hi-IN','Hinglish / हिन्दी'],['en-IN','English (India)'],['gu-IN','ગુજરાતી'],['mr-IN','मराठी'],['pa-IN','ਪੰਜਾਬੀ'],['bn-IN','বাংলা'],['ta-IN','தமிழ்'],['te-IN','తెలుగు'],['kn-IN','ಕನ್ನಡ'],['ml-IN','മലയാളം'],['ur-PK','اردو'],['en-US','English (US)'],['en-GB','English (UK)'],['es-ES','Español'],['fr-FR','Français'],['de-DE','Deutsch'],['pt-BR','Português'],['ru-RU','Русский'],['ar-SA','العربية'],['ja-JP','日本語'],['zh-CN','中文']];
-LANGS.forEach(([c,n])=>{const o=document.createElement('option');o.value=c;o.textContent=n;if(c===lang)o.selected=true;$('lang').appendChild(o);});
-$('lang').onchange=()=>{lang=$('lang').value;LS.set('lang',lang);addLog('ven','Language badal di: '+$('lang').selectedOptions[0].textContent);if(voiceOn){stopRec();restoreMode();}};
-
-/* ---------- log ---------- */
-function addLog(who,text){
-  const d=document.createElement('div');d.className='m '+(who==='you'?'you':'ven');d.textContent=text;
-  const l=$('log');l.appendChild(d);l.scrollTop=l.scrollHeight;
-  while(l.children.length>80)l.removeChild(l.firstChild);
-}
-
-/* ---------- audio / mic level ---------- */
-function chime(f=880,d=0.12){
-  if(!audioCtx)return;
-  try{const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-  o.frequency.value=f;o.type='sine';g.gain.value=0.06;o.connect(g);g.connect(audioCtx.destination);o.start();
-  g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+d);o.stop(audioCtx.currentTime+d);}catch(e){}
-}
-async function initMic(){
-  try{
-    micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
-    const src=audioCtx.createMediaStreamSource(micStream);
-    an=audioCtx.createAnalyser();an.fftSize=256;src.connect(an);micBuf=new Uint8Array(an.fftSize);
-    return true;
-  }catch(e){addLog('ven','Mic permission nahi mili. Browser ke address bar se mic allow kar.');return false;}
-}
-function stopMic(){if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;an=null;}}
-async function keepAwake(){try{if(navigator.wakeLock&&!wl)wl=await navigator.wakeLock.request('screen');if(wl)wl.addEventListener('release',()=>{wl=null;});}catch(e){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&voiceOn)keepAwake();});
-
-/* ---------- speech out (clear, chunked, language-aware) ---------- */
-function cleanSpeech(t){return t.split(/\n\nSources/)[0].replace(/https?:\/\/\S+/g,'').replace(/[*#_`>|~]/g,'').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim();}
-function chunk(t){
-  const parts=(t.match(/[^.!?।\n]+[.!?।]?/g)||[t]).map(s=>s.trim()).filter(Boolean),out=[];
-  for(const p of parts){
-    if(p.length<=170){out.push(p);continue;}
-    let c='';for(const x of p.split(' ')){if((c+' '+x).length>170){out.push(c);c=x;}else c=c?c+' '+x:x;}
-    if(c)out.push(c);
-  }
-  return out;
-}
-function detectLang(t){
-  if(/[\u0A80-\u0AFF]/.test(t))return 'gu-IN';
-  if(/[\u0900-\u097F]/.test(t))return lang==='mr-IN'?'mr-IN':'hi-IN';
-  if(/[\u0A00-\u0A7F]/.test(t))return 'pa-IN';
-  if(/[\u0980-\u09FF]/.test(t))return 'bn-IN';
-  if(/[\u0B80-\u0BFF]/.test(t))return 'ta-IN';
-  if(/[\u0C00-\u0C7F]/.test(t))return 'te-IN';
-  if(/[\u0C80-\u0CFF]/.test(t))return 'kn-IN';
-  if(/[\u0D00-\u0D7F]/.test(t))return 'ml-IN';
-  if(/[\u0600-\u06FF]/.test(t))return lang==='ur-PK'?'ur-PK':'ar-SA';
-  if(/[\u3040-\u30FF]/.test(t))return 'ja-JP';
-  if(/[\u4E00-\u9FFF]/.test(t))return 'zh-CN';
-  if(/[\u0400-\u04FF]/.test(t))return 'ru-RU';
-  return /^(en|es|fr|de|pt)/.test(lang)?lang:'en-IN';
-}
-function voiceFor(L){
-  const vs=speechSynthesis.getVoices();if(!vs.length)return null;
-  const exact=vs.filter(v=>v.lang.replace('_','-').toLowerCase()===L.toLowerCase());
-  const same=vs.filter(v=>v.lang.toLowerCase().startsWith(L.slice(0,2).toLowerCase()));
-  const pool=exact.length?exact:same;
-  return pool.find(v=>/natural|neural|google/i.test(v.name))||pool[0]||null;
-}
-function say(text){
-  return new Promise(res=>{
-    const clean=cleanSpeech(text||'');
-    if(!speakOn||!window.speechSynthesis||!clean){res();return;}
-    const gen=++speakGen;speaking=true;setMode('speaking');stopRec();
-    const L=detectLang(clean),v=voiceFor(L),parts=chunk(clean);let i=0;
-    const next=()=>{
-      if(gen!==speakGen){res();return;}
-      if(i>=parts.length){speaking=false;res();return;}
-      const u=new SpeechSynthesisUtterance(parts[i++]);
-      if(v){u.voice=v;u.lang=v.lang;}else u.lang=L;
-      u.pitch=.85;u.rate=1;u.onend=next;u.onerror=next;
-      speechSynthesis.speak(u);
-    };
-    speechSynthesis.cancel();next();
-  });
-}
-function interrupt(){speakGen++;skipReplies=true;try{speechSynthesis.cancel();}catch(e){}speaking=false;restoreMode();}
-if(window.speechSynthesis){speechSynthesis.onvoiceschanged=()=>{};speechSynthesis.getVoices();}
-
-/* ---------- speech in ---------- */
-const WAKE=/(ven[ao]m|वेन[मो]म|વેનમ|வெனம்|వెనమ్|ভেনম)/i;
-function restoreMode(){
-  if(!voiceOn){setMode('off');return;}
-  setMode(awake?'listening':'sleep');startRec();
-}
-function startRec(){
-  if(!SR||!voiceOn||speaking||busy||rec||ptt)return;
-  const r=new SR();r.lang=awake?lang:'en-IN';r.continuous=true;r.interimResults=true;
-  r.onresult=e=>{
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const x=e.results[i];
-      if(x.isFinal)onFinal(x[0].transcript.trim());else $('interim').textContent=x[0].transcript;
-    }
-  };
-  r.onend=()=>{if(rec===r)rec=null;$('interim').textContent='';if(voiceOn&&!speaking&&!busy&&!ptt)setTimeout(startRec,300);};
-  r.onerror=e=>{
-    if(e.error==='not-allowed'||e.error==='service-not-allowed'){addLog('ven','Mic block hai. Address bar se allow kar.');setVoice(false);}
-  };
-  rec=r;try{r.start();}catch(e){rec=null;}
-}
-function stopRec(){if(rec){const r=rec;rec=null;r.onend=null;try{r.abort();}catch(e){}}$('interim').textContent='';}
-setInterval(()=>{if(voiceOn&&!rec&&!speaking&&!busy&&!ptt)startRec();},4000);   /* watchdog: voice kabhi atke nahi */
-
-async function onFinal(text){
-  if(!text)return;
-  if(!awake){
-    if(!WAKE.test(text))return;
-    const rest=text.replace(/(hey|hay|heyo|hello|hi|हे|हेलो)?\s*(ven[ao]m|वेन[मो]म|વેનમ|வெனம்|వెనమ్|ভেনম)/i,'').trim();
-    await wake(rest.length>3?rest:'');return;
-  }
-  lastActive=Date.now();send(text);
-}
-async function wake(rest){
-  awake=true;lastActive=Date.now();chime(660,.1);setTimeout(()=>chime(990,.12),110);stopRec();
-  if(rest){send(rest);return;}
-  await say('Haan Maninder, bol. Kya kaam hai?');restoreMode();
-}
-function goSleep(){awake=false;stopRec();restoreMode();}
-setInterval(()=>{if(voiceOn&&awake&&!speaking&&!busy&&Date.now()-lastActive>90000){addLog('ven','(so gaya. Jagane ke liye bol: Hey Venom)');goSleep();}},3000);
-
-function setVoice(on){
-  voiceOn=on;$('voice').textContent='VOICE: '+(on?'ON':'OFF');$('voice').classList.toggle('on',on);
-  if(on){
-    if(!SR){addLog('ven','Is browser mein voice input nahi. Chrome/Edge/Safari use kar, ya type kar.');voiceOn=false;$('voice').textContent='VOICE: OFF';$('voice').classList.remove('on');return;}
-    (async()=>{if(!micStream)await initMic();awake=false;keepAwake();restoreMode();})();
-  }else{awake=false;stopRec();stopMic();setMode('off');}
-}
-$('voice').onclick=()=>setVoice(!voiceOn);
-
-/* ek baar bolo (phone / iPhone ke liye best) */
-function talkOnce(){
-  if(!SR){addLog('ven','Is browser mein voice input nahi. Type kar ya keyboard ka mic use kar.');return;}
-  if(speaking){interrupt();return;}
-  if(busy||ptt)return;
-  stopRec();ptt=true;awake=true;lastActive=Date.now();setMode('listening');chime(660,.08);
-  const r=new SR();r.lang=lang;r.continuous=false;r.interimResults=true;let got=false;
-  r.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];
-    if(x.isFinal){got=true;send(x[0].transcript.trim());}else $('interim').textContent=x[0].transcript;}};
-  r.onend=()=>{ptt=false;$('interim').textContent='';if(!got)restoreMode();};
-  r.onerror=e=>{ptt=false;if(e.error==='not-allowed'||e.error==='service-not-allowed')addLog('ven','Mic block hai. Browser settings mein mic allow kar.');};
-  try{r.start();}catch(e){ptt=false;}
-}
-$('talk').onclick=talkOnce;
-$('hud').addEventListener('click',()=>{if(speaking)interrupt();else talkOnce();});
-
-/* ---------- server ---------- */
-async function playReplies(list){
-  for(const rp of list){if(skipReplies)break;addLog('ven',rp.show);await say(rp.say);}
-}
-async function send(text){
-  text=(text||'').trim();if(!text)return;
-  if(cdTimer&&/cancel|ruk|nahi|रुक|कैंसिल|रद्द/i.test(text)){cancelShutdown();return;}
-  if(/(voice|mic)\s*(off|band|bandh)/i.test(text)){addLog('you',text);addLog('ven','Voice band kar raha hu. Jab chahiye button daba dena.');await say('Voice band kar raha hu.');setVoice(false);return;}
-  addLog('you',text);busy=true;skipReplies=false;stopRec();setMode('thinking');
-  let data;
-  try{
-    const r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json','X-Venom-Token':TOKEN},body:JSON.stringify({text})});
-    if(r.status===403){data={replies:[{say:'Session khatam ho gaya. Page reload kar.',show:'Session khatam ho gaya. Page reload kar ya dobara login kar.'}]};}
-    else data=await r.json();
-  }catch(e){data={replies:[{say:'Server se connection toot gaya.',show:'Server se connection toot gaya. Laptop pe jarvis.py chal raha hai? Net check kar.'}]};}
-  await playReplies(data.replies||[]);
-  busy=false;
-  if(data.countdown)startCountdown(data.countdown);
-  if(data.sleep){goSleep();return;}
-  lastActive=Date.now();restoreMode();
-}
-function submitText(){const t=$('txt').value.trim();if(!t)return;$('txt').value='';awake=true;send(t);}
-$('txt').addEventListener('keydown',e=>{if(e.key==='Enter')submitText();});
-$('send').onclick=submitText;
-
-/* ---------- upload (design / video review) ---------- */
-$('attach').onclick=()=>$('file').click();
-$('file').onchange=async e=>{
-  const f=e.target.files[0];e.target.value='';if(!f)return;
-  const note=$('txt').value.trim();$('txt').value='';
-  addLog('you','📎 '+f.name+(note?' — '+note:''));
-  busy=true;skipReplies=false;stopRec();setMode('thinking');
-  const fd=new FormData();fd.append('file',f);fd.append('note',note);
-  let data;
-  try{const r=await fetch('/api/upload',{method:'POST',headers:{'X-Venom-Token':TOKEN},body:fd});data=await r.json();}
-  catch(err){data={replies:[{say:'Upload fail ho gaya.',show:'Upload fail ho gaya. Net ya file size check kar.'}]};}
-  await playReplies(data.replies||[]);busy=false;restoreMode();
-};
-
-const CHIPS=[['Security check','security check'],['Meetings','meetings kab hai'],['Payments baaki','payment pending list'],
- ['Trends','trends dhundo reels aur design ke'],['Content plan','7 din ka content plan bana'],['Reel idea','reel idea aur script bana'],
- ['Captions','caption aur hashtags bana'],['Aaj ka plan','aaj ke liye mere top 3 kaam batao'],['Rate card','price chart'],['Phone test','notification test']];
-CHIPS.forEach(([l,c])=>{const b=document.createElement('button');b.textContent=l;b.onclick=()=>{awake=true;send(c);};$('row2').appendChild(b);});
-
-$('spk').onclick=()=>{speakOn=!speakOn;LS.set('speak',speakOn?'1':'0');$('spk').classList.toggle('on',speakOn);$('spk').textContent=speakOn?'🔊':'🔇';if(!speakOn&&speaking)interrupt();};
-$('spk').classList.toggle('on',speakOn);$('spk').textContent=speakOn?'🔊':'🔇';
-
-/* ---------- shutdown countdown ---------- */
-function startCountdown(sec){
-  let n=sec;$('cd').style.display='flex';$('cdn').textContent=n;setMode('alert');
-  cdTimer=setInterval(()=>{n--;$('cdn').textContent=n;chime(500,.08);if(n<=0){clearInterval(cdTimer);cdTimer=null;}},1000);
-}
-async function cancelShutdown(){
-  clearInterval(cdTimer);cdTimer=null;$('cd').style.display='none';
-  await fetch('/api/shutdown/cancel',{method:'POST',headers:{'X-Venom-Token':TOKEN}});
-  addLog('ven','Shutdown cancel kar diya.');await say('Cancel kar diya. Laptop chalu hi rahega.');restoreMode();
-}
-$('cdc').onclick=cancelShutdown;
-
-/* ---------- status polling (alerts ab kabhi miss nahi hote) ---------- */
-function setBar(id,v){$(id).style.width=Math.min(100,v||0)+'%';}
-const inr=x=>'₹'+Math.round(x||0).toLocaleString('en-IN');
-async function poll(){
-  try{
-    const r=await fetch('/api/status',{headers:{'X-Venom-Token':TOKEN}});const s=await r.json();
-    const st=s.stats||{};
-    $('cpu').textContent=st.cpu!=null?Math.round(st.cpu)+'%':'n/a';setBar('cpub',st.cpu);
-    $('ram').textContent=st.ram!=null?Math.round(st.ram)+'%':'n/a';setBar('ramb',st.ram);
-    $('bat').textContent=st.battery!=null?st.battery+'%'+(st.plugged?' ⚡':''):'n/a';
-    $('keys').textContent=s.keys;$('pa').textContent=s.phone_alerts?'ON':'OFF';
-    $('rec').textContent=inr(s.received);$('pend').textContent=inr(s.pending);
-    $('leads').textContent=s.leads;$('queue').textContent=s.queue;
-    $('meet').textContent=s.meeting||'Koi nahi';$('brief').textContent=s.brief||'';
-    $('ticker').textContent=`aaya ${inr(s.received)}  ·  baaki ${inr(s.pending)}  ·  leads ${s.leads}  ·  ${s.meeting||'koi meeting nahi'}`;
-    if(s.alerts&&s.alerts.length)alertQ.push(...s.alerts);
-  }catch(e){}
-  $('net').textContent=navigator.onLine?'ONLINE':'OFFLINE';
-  if(alertQ.length&&!speaking&&!busy&&!ptt){
-    const prev=mode;setMode('alert');
-    while(alertQ.length){const a=alertQ.shift();addLog('ven',a.show);await say(a.say);}
-    restoreMode();
-  }
-}
-setInterval(poll,5000);
-setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
-
-/* ---------- canvas ---------- */
-const bg=$('bg'),bx=bg.getContext('2d');let P=[];
-function resizeBg(){bg.width=innerWidth;bg.height=innerHeight;P=Array.from({length:Math.round(innerWidth*innerHeight/16000)},()=>({x:Math.random()*bg.width,y:Math.random()*bg.height,v:.05+Math.random()*.25,r:Math.random()*1.4+.3}));}
-const hud=$('hud'),hx=hud.getContext('2d');
-const BARS=72,bars=new Float32Array(BARS);let amp=0,DPR=Math.min(devicePixelRatio||1,2),hbPhase=0,lastTs=0,beatFlag=false;
-function resizeHud(){const s=Math.min(innerWidth*(innerWidth<700?.9:.52),innerHeight*(innerWidth<700?.5:.6));hud.width=hud.height=s*DPR;hud.style.width=hud.style.height=s+'px';}
-function resizeAll(){resizeBg();resizeHud();}
-addEventListener('resize',resizeAll);resizeAll();
-const rgba=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
-const G=(x,c,w)=>Math.exp(-Math.pow((x-c)/w,2));
-const beatEnv=ph=>G(ph,.05,.04)+.65*G(ph,.27,.05);   /* lub-dub */
-function frame(ts){
-  const t=ts/1000,dt=Math.min(.1,(ts-lastTs)/1000||.016);lastTs=ts;
-  const W=hud.width,c=W/2,col=MODES[mode].c;
-  bx.clearRect(0,0,bg.width,bg.height);bx.fillStyle='rgba(255,255,255,.35)';
-  for(const p of P){p.y-=p.v;if(p.y<-5){p.y=bg.height+5;p.x=Math.random()*bg.width;}bx.globalAlpha=.25+.5*Math.abs(Math.sin(t*.6+p.x));bx.beginPath();bx.arc(p.x,p.y,p.r,0,6.283);bx.fill();}
-  bx.globalAlpha=1;
-  if(an){an.getByteTimeDomainData(micBuf);let s=0;for(let i=0;i<micBuf.length;i++){const v=(micBuf[i]-128)/128;s+=v*v;}micLevel=Math.min(1,Math.sqrt(s/micBuf.length)*5);}else micLevel=0;
-  /* heartbeat */
-  const hz=mode==='speaking'?1.35:mode==='thinking'?1.0:mode==='listening'?.9+micLevel*.8:mode==='alert'?2:.6;
-  hbPhase=(hbPhase+dt*hz)%1;
-  const hb=beatEnv(hbPhase),hbw=mode==='speaking'?1:mode==='thinking'?.45:mode==='listening'?.5:mode==='alert'?1:.25;
-  const target=mode==='speaking'?.30+hb*.55+Math.random()*.08:mode==='thinking'?.15+hb*.2:mode==='listening'?.10+micLevel*.9+hb*.1:
-    mode==='sleep'?.03+micLevel*.25+hb*.05:mode==='alert'?.2+hb*.5:.02;
-  amp+=(target-amp)*(mode==='speaking'?.35:.14);
-  /* poora orb dhadakta aur hilta hai */
-  const sp=mode==='speaking';
-  const sc=1+hb*hbw*.075,rot=Math.sin(t*.8)*(sp?2.5:.7),dx=Math.sin(t*1.1)*(sp?7:2),dy=Math.cos(t*1.3)*(sp?5:1.5);
-  hud.style.transform=`translate(calc(-50% + ${dx}px),calc(-62% + ${dy}px)) scale(${sc}) rotate(${rot}deg)`;
-  if(sp&&hb>.85&&!beatFlag){beatFlag=true;if(navigator.vibrate)navigator.vibrate(10);}if(hb<.3)beatFlag=false;
-  hx.clearRect(0,0,W,W);
-  const g=hx.createRadialGradient(c,c,W*.04,c,c,W*.5);
-  g.addColorStop(0,rgba(col,.28+amp*.45+hb*hbw*.2));g.addColorStop(.45,rgba(col,.06+amp*.1));g.addColorStop(1,'rgba(0,0,0,0)');
-  hx.fillStyle=g;hx.fillRect(0,0,W,W);hx.lineCap='round';
-  hx.save();hx.translate(c,c);hx.rotate(t*.12);const R1=W*.43;
-  for(let i=0;i<120;i++){const a=i/120*6.283,len=i%10===0?W*.025:W*.012;hx.strokeStyle=rgba(col,i%10===0?.8:.35);hx.lineWidth=(i%10===0?2:1)*DPR;
-    hx.beginPath();hx.moveTo(Math.cos(a)*R1,Math.sin(a)*R1);hx.lineTo(Math.cos(a)*(R1-len),Math.sin(a)*(R1-len));hx.stroke();}
-  hx.restore();
-  hx.save();hx.translate(c,c);hx.rotate(-t*.25);hx.setLineDash([W*.02,W*.012]);hx.strokeStyle=rgba(col,.45);hx.lineWidth=2*DPR;
-  hx.beginPath();hx.arc(0,0,W*.38,0,6.283);hx.stroke();hx.restore();
-  hx.save();hx.translate(c,c);hx.rotate(t*(mode==='thinking'?1.6:.45));hx.lineWidth=5*DPR;hx.strokeStyle=rgba(col,.85);
-  for(let k=0;k<3;k++){const a=k*2.094;hx.beginPath();hx.arc(0,0,W*.33,a,a+.9);hx.stroke();}
-  hx.restore();
-  const R2=W*.265;
-  for(let i=0;i<BARS;i++){
-    const a=i/BARS*6.283-1.5708,h=amp*(.35+.65*Math.abs(Math.sin(i*.55+t*5.3)))*(.6+.4*Math.random());
-    bars[i]+=(h-bars[i])*.35;const len=W*.02+bars[i]*W*.11;
-    hx.strokeStyle=rgba(col,Math.min(1,.55+bars[i]));hx.lineWidth=2.4*DPR;
-    hx.beginPath();hx.moveTo(c+Math.cos(a)*R2,c+Math.sin(a)*R2);hx.lineTo(c+Math.cos(a)*(R2+len),c+Math.sin(a)*(R2+len));hx.stroke();
-  }
-  const tn=mode==='off'?0:10;
-  for(let k=0;k<tn;k++){
-    const a0=k/tn*6.283+t*.18,L=W*.05+amp*W*.2;
-    hx.strokeStyle=rgba(col,.12+amp*.25);hx.lineWidth=1.6*DPR;hx.beginPath();
-    for(let j=0;j<=16;j++){
-      const f=j/16,r=W*.445+f*L,off=Math.sin(t*2.6+k*1.7+j*.55)*W*.018*(f+amp*2);
-      const px=c+Math.cos(a0)*r+Math.cos(a0+1.5708)*off,py=c+Math.sin(a0)*r+Math.sin(a0+1.5708)*off;
-      j?hx.lineTo(px,py):hx.moveTo(px,py);
-    }
-    hx.stroke();
-  }
-  hx.strokeStyle=rgba(col,.9);hx.lineWidth=2*DPR;hx.beginPath();hx.arc(c,c,W*.2,0,6.283);hx.stroke();
-  const cr=W*.095*(1+amp*.35+hb*hbw*.25);
-  const cg=hx.createRadialGradient(c,c,0,c,c,cr*1.6);
-  cg.addColorStop(0,'rgba(255,255,255,'+Math.min(1,.75+amp*.25)+')');cg.addColorStop(.5,rgba(col,.55));cg.addColorStop(1,'rgba(0,0,0,0)');
-  hx.fillStyle=cg;hx.beginPath();hx.arc(c,c,cr*1.6,0,6.283);hx.fill();
-  hx.save();hx.translate(c,c);hx.rotate(-t*.7);hx.strokeStyle='rgba(0,0,0,.65)';hx.lineWidth=3*DPR;hx.beginPath();
-  for(let k=0;k<3;k++){const a=k*2.094-1.5708,x=Math.cos(a)*cr*.62,y=Math.sin(a)*cr*.62;k?hx.lineTo(x,y):hx.moveTo(x,y);}
-  hx.closePath();hx.stroke();hx.restore();
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
-setMode('off');
-
-/* ---------- boot ---------- */
-$('enter').onclick=async()=>{
-  audioCtx=new (window.AudioContext||window.webkitAudioContext)();try{audioCtx.resume();}catch(e){}
-  try{speechSynthesis.speak(new SpeechSynthesisUtterance(' '));}catch(e){}   /* iPhone: audio unlock */
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
-  $('enter').style.display='none';
-  let st={keys:0,pending:0,leads:0};
-  try{const r=await fetch('/api/status',{headers:{'X-Venom-Token':TOKEN}});st=await r.json();}catch(e){}
-  const lines=['> NEURAL LINK ........ OK','> AI KEYS ............ '+st.keys+' ACTIVE','> SECURITY WATCH ..... ON',
-    '> PHONE ALERTS ....... '+(st.phone_alerts?'ON':'NOT SET'),'> PORTFOLIO LINK ..... '+(st.portfolio?'OK':'NOT SET (.env)'),
-    '> VOICE MODULE ....... '+(SR?'READY':'TYPE ONLY'),'> WELCOME, MANINDER.'];
-  let i=0;
-  const tick=()=>{$('bootlines').textContent+=(i?'\n':'')+lines[i];chime(400+i*90,.05);i++;
-    if(i<lines.length)setTimeout(tick,380);else setTimeout(finishBoot,600);};
-  tick();
-};
-async function finishBoot(){
-  $('boot').style.opacity=0;setTimeout(()=>$('boot').style.display='none',900);
-  poll();keepAwake();
-  if(!touch)setVoice(true);
-  addLog('ven',touch?'Venom online. Orb pe tap karke bol, ya neeche type kar.':'Venom online. Bol "Hey Venom", ya orb pe tap kar, ya type kar.');
-  await say('Venom online. Hum tumhare saath hain, Maninder.');
-  restoreMode();
-}
-</script>
-</body>
-</html>
+'use strict';
+const TOKEN="__TOKEN__",$=id=>document.getElementById(id),SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let voiceOn=false,awake=false,busy=false,rec=null,ptt=false,speakOn=true,feedItems=[];
+const money=n=>'₹'+Math.round(Number(n)||0).toLocaleString('en-IN');
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),3000)}
+function mode(t){$('coreMode').textContent=t;$('coreStatus').textContent=t==='THINKING'?'PROCESSING REQUEST':t==='LISTENING'?'MIC ACTIVE':t==='SPEAKING'?'VOICE OUTPUT':t==='ONLINE'?'CORE ONLINE':'AWAITING COMMAND';$('coreDot').classList.toggle('live',t==='ONLINE'||t==='LISTENING');$('heroState').textContent=t}
+function add(who,t){const d=document.createElement('div');d.className='msg '+who;const s=document.createElement('small');s.textContent=who==='you'?'YOU // INPUT':'VENOM // RESPONSE';d.appendChild(s);d.appendChild(document.createTextNode(t||''));$('stream').appendChild(d);$('stream').scrollTop=$('stream').scrollHeight}
+function say(t){return new Promise(done=>{if(!speakOn||!window.speechSynthesis||!t){done();return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t).replace(/https?:\/\/\S+/g,'').replace(/[*#_]/g,''));u.lang='en-IN';u.rate=.98;u.pitch=.86;u.onend=done;u.onerror=done;speechSynthesis.speak(u)})}
+function stopRec(){if(rec){const r=rec;rec=null;r.onend=null;try{r.abort()}catch(e){}}}
+function listen(continuous){if(!SR){toast('Use Chrome or Edge for browser voice input.');return}stopRec();const r=new SR();r.lang='en-IN';r.continuous=!!continuous;r.interimResults=true;r.onresult=e=>{let t='';for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)t+=e.results[i][0].transcript;if(t.trim()){if(continuous&&!awake){if(/venom|venum|wenom/i.test(t)){awake=true;send(t.replace(/hey\s*venom|venom|venum|wenom/i,'').trim()||'Haan, bol.')}}else send(t.trim())}};r.onerror=e=>{if(e.error==='not-allowed')toast('Allow microphone access in browser settings.')};r.onend=()=>{if(rec===r)rec=null;if(voiceOn&&!busy&&!ptt)setTimeout(()=>listen(true),500)};rec=r;try{r.start()}catch(e){rec=null}}
+function setVoice(on){voiceOn=!!on;$('voice').textContent=voiceOn?'◉ VOICE ON':'◉ VOICE OFF';if(voiceOn){awake=false;listen(true);toast('Wake-word mode on. Say Hey Venom.')}else{stopRec();awake=false;toast('Voice mode off.')}}
+function ptt(){if(!SR){toast('Use Chrome or Edge for voice input.');return}if(busy||ptt)return;stopRec();const r=new SR();r.lang='en-IN';r.continuous=false;r.interimResults=false;ptt=true;r.onresult=e=>{const t=e.results[0][0].transcript;if(t)send(t)};r.onerror=e=>toast('Voice input: '+e.error);r.onend=()=>{ptt=false;if(voiceOn&&!busy)listen(true)};rec=r;try{r.start()}catch(e){ptt=false}}
+async function send(t){t=String(t||'').trim();if(!t||busy)return;add('you',t);$('message').value='';busy=true;mode('THINKING');['send','talk','ptt'].forEach(id=>$(id).disabled=true);try{const r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json','X-Venom-Token':TOKEN},body:JSON.stringify({text:t})});if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();for(const x of(d.replies||[])){add('ven',x.show||x.say||'');await say(x.say||x.show||'')}if(d.countdown)toast('Shutdown scheduled. Send cancel if unintended.');if(!(d.replies||[]).length)toast('Command received.')}catch(e){add('ven','Connection error: '+e.message+'. Check that VENOM server is running.');toast('VENOM server unavailable')}finally{busy=false;['send','talk','ptt'].forEach(id=>$(id).disabled=false);mode('ONLINE');if(voiceOn&&!ptt)listen(true)}}
+function submit(){send($('message').value)}
+function upload(){ $('file').click() }
+$('file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const fd=new FormData();fd.append('file',f);fd.append('note','Review this creative asset and give actionable feedback.');add('you','Attached: '+f.name);busy=true;mode('THINKING');try{const r=await fetch('/api/upload',{method:'POST',headers:{'X-Venom-Token':TOKEN},body:fd});const d=await r.json();for(const x of(d.replies||[])){add('ven',x.show||x.say);await say(x.say||x.show)}}catch(e){add('ven','Upload failed. Check file size and server connection.')}finally{busy=false;mode('ONLINE')}};
+function nav(p){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+p));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('crumb').textContent=p.toUpperCase();if(p==='assistant')$('message').focus()}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>nav(b.dataset.page));
+document.querySelectorAll('[data-command]').forEach(b=>b.onclick=()=>{nav('assistant');send(b.dataset.command)});
+$('send').onclick=submit;$('message').onkeydown=e=>{if(e.key==='Enter')submit()};$('talk').onclick=ptt;$('ptt').onclick=ptt;$('voice').onclick=()=>setVoice(!voiceOn);$('openChat').onclick=()=>nav('assistant');$('upload').onclick=upload;$('studioUpload').onclick=()=>{nav('assistant');upload()};
+$('settings').onclick=()=>$('modal').classList.add('open');$('closeModal').onclick=()=>$('modal').classList.remove('open');$('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.remove('open')};
+function guide(){toast('Run 3_API_SETUP.bat from your VENOM project folder to manage API keys.')} $('apiGuide').onclick=guide;$('modalGuide').onclick=guide;$('modalRefresh').onclick=poll;
+function addFeed(t,sub){feedItems.unshift([t,sub]);feedItems=feedItems.slice(0,5);$('feed').innerHTML='';feedItems.forEach(x=>{const d=document.createElement('div');d.className='feeditem';d.textContent=x[0];const s=document.createElement('small');s.textContent=x[1];d.appendChild(s);$('feed').appendChild(d)})}
+function renderProviders(a){const s=(a||[]).map(x=>'<div class="provider"><span>'+String(x.provider||'Provider').replace(/[<>&"]/g,'')+'</span><small>'+String(x.status||'ready').toUpperCase().replace(/[<>&"]/g,'')+'</small></div>').join('');$('providers').innerHTML=s||'<div class="provider">No providers configured</div>';$('modalProviders').innerHTML=s||'<div class="provider">No providers configured. Run 3_API_SETUP.bat.</div>'}
+async function poll(){try{const r=await fetch('/api/status',{headers:{'X-Venom-Token':TOKEN}});if(!r.ok)throw Error('HTTP '+r.status);const s=await r.json(),a=s.stats||{},cpu=a.cpu==null?null:Math.round(a.cpu),ram=a.ram==null?null:Math.round(a.ram);$('cpu').textContent=cpu==null?'N/A':cpu+'%';$('ram').textContent=ram==null?'N/A':ram+'%';$('cpuBar').style.width=(cpu||0)+'%';$('ramBar').style.width=(ram||0)+'%';$('battery').textContent=a.battery==null?'N/A':a.battery+'%';$('batteryFoot').textContent=a.plugged?'POWER CONNECTED':'POWER STATUS';$('keys').textContent=s.keys||0;$('providerFoot').textContent=(s.ai_providers||[]).length+' PROVIDERS';$('meeting').textContent=s.meeting||'No upcoming meeting';$('sysCpu').textContent=cpu==null?'N/A':cpu+'%';$('sysRam').textContent=ram==null?'N/A':ram+'%';$('sysBattery').textContent=$('battery').textContent;$('sysNetwork').textContent=navigator.onLine?'ONLINE':'OFFLINE';$('sysEngine').textContent='ONLINE';$('sysKeys').textContent=s.keys||0;$('sysPhone').textContent=s.phone_alerts?'CONFIGURED':'NOT CONFIGURED';$('sysRemote').textContent=s.remote?'PIN PROTECTED':'LOCAL ONLY';$('sysReceived').textContent=money(s.received);$('sysPending').textContent=money(s.pending);$('sysLeads').textContent=s.leads||0;$('sysQueue').textContent=s.queue||0;renderProviders(s.ai_providers||[]);$('connDot').classList.add('live');$('connText').textContent='Local engine connected. Telemetry active.';if(!feedItems.length)addFeed('VENOM local engine connected','LIVE TELEMETRY');(s.alerts||[]).forEach(x=>{add('ven',x.show||x.say||'System alert');addFeed(x.show||x.say||'System alert','JUST NOW')});mode('ONLINE')}catch(e){$('connDot').classList.remove('live');$('connText').textContent='Start VENOM using 2_START_VENOM.bat.';$('heroState').textContent='OFFLINE';$('sysEngine').textContent='OFFLINE';mode('OFFLINE')}}
+$('clock').textContent='';function tick(){$('clock').textContent=new Date().toLocaleTimeString('en-IN',{hour12:false})}tick();setInterval(tick,1000);setInterval(poll,5000);$('modalRefresh').onclick=poll;
+(function(){const c=$('particles'),x=c.getContext('2d');let w,h,d=1,p=[];function size(){d=Math.min(devicePixelRatio||1,1.5);w=innerWidth;h=innerHeight;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';x.setTransform(d,0,0,d,0,0);p=Array.from({length:Math.min(90,Math.floor(w*h/15000))},()=>({x:Math.random()*w,y:Math.random()*h,v:.08+Math.random()*.2,r:.4+Math.random()*1.2,a:.12+Math.random()*.3}))}function draw(){x.clearRect(0,0,w,h);p.forEach(q=>{q.y-=q.v;if(q.y<0){q.y=h;q.x=Math.random()*w}x.fillStyle='rgba(255,70,100,'+q.a+')';x.beginPath();x.arc(q.x,q.y,q.r,0,6.28);x.fill()});requestAnimationFrame(draw)}size();addEventListener('resize',size);draw()})();
+$('progress').style.width='15%';setTimeout(()=>$('progress').style.width='65%',180);setTimeout(()=>$('progress').style.width='100%',430);setTimeout(()=>{$('boot').style.opacity='0';setTimeout(()=>$('boot').remove(),750);poll()},800);mode('STANDBY');
+</script></body></html>
