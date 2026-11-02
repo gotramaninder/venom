@@ -373,14 +373,30 @@ def cancel_shutdown():
 def status():
     auth()
     clients = V.load_json(V.CLIENT_FILE, [])
+    clients = [x for x in clients if isinstance(x, dict)] if isinstance(clients, list) else []
     month = datetime.now().strftime("%Y-%m")
-    got = sum(p["amount"] for c in clients for p in c.get("payments", []) if p["date"].startswith(month))
-    pend = sum(max(V.num(c.get("price")) - V.num(c.get("paid")), 0) for c in clients)
+    got = sum(V.num(p.get("amount")) for client in clients
+              for p in (client.get("payments", []) if isinstance(client.get("payments", []), list) else [])
+              if isinstance(p, dict) and str(p.get("date", "")).startswith(month))
+    pend = sum(max(V.num(client.get("price")) - V.num(client.get("paid")), 0) for client in clients)
     leads = V.load_json(V.DATA_DIR / "leads.json", [])
     queue = V.load_json(V.DATA_DIR / "queue.json", [])
     briefs = V.load_json(V.DATA_DIR / "briefs.json", [])
+    leads = [x for x in leads if isinstance(x, dict)] if isinstance(leads, list) else []
+    queue = [x for x in queue if isinstance(x, dict)] if isinstance(queue, list) else []
+    briefs = [x for x in briefs if isinstance(x, dict)] if isinstance(briefs, list) else []
     now = datetime.now()
-    meets = sorted([m for m in V.load_meetings() if datetime.strptime(m["when"], "%Y-%m-%d %H:%M") >= now], key=lambda m: m["when"])
+    meets = []
+    for meeting in V.load_meetings():
+        if not isinstance(meeting, dict):
+            continue
+        try:
+            when = datetime.strptime(str(meeting.get("when", "")), "%Y-%m-%d %H:%M")
+        except ValueError:
+            continue
+        if when >= now:
+            meets.append((when, meeting))
+    meets.sort(key=lambda item: item[0])
     stats = {}
     if psutil:
         stats = {"cpu": psutil.cpu_percent(), "ram": psutil.virtual_memory().percent}
@@ -396,8 +412,8 @@ def status():
     return jsonify(stats=stats, keys=len(V.PROVIDERS), ai_providers=V.provider_status(), received=got, pending=pend,
                    leads=sum(1 for x in leads if x.get("status") == "new"),
                    queue=sum(1 for x in queue if x.get("status") in ("pending", "approved")),
-                   meeting=(f"{meets[0]['title']} — {meets[0]['when']}" if meets else ""),
-                   brief=(briefs[-1]["text"][:420] if briefs else ""), alerts=alerts, portfolio=bool(V.PORTFOLIO_URL),
+                   meeting=(f"{meets[0][1].get('title', 'Meeting')} — {meets[0][1].get('when', '')}" if meets else ""),
+                   brief=(str(briefs[-1].get("text", ""))[:420] if briefs else ""), alerts=alerts, portfolio=bool(V.PORTFOLIO_URL),
                    phone_alerts=notify.configured(), remote=bool(PIN))
 
 
