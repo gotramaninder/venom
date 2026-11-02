@@ -1,0 +1,4 @@
+-r requirements.txt
+SpeechRecognition
+pyttsx3
+pyaudio
