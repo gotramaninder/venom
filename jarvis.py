@@ -183,7 +183,7 @@ def make_png(size):
             if d < 0.22:
                 px = (255, 255, 255)
             elif d < 0.30:
-                px = (179, 136, 255)
+                px = (225, 29, 63)
             elif 0.52 < d < 0.58:
                 px = (230, 236, 245)
             elif 0.72 < d < 0.75:
@@ -208,8 +208,8 @@ def icon():
 
 @app.get("/manifest.json")
 def manifest():
-    return jsonify(name="VENOM", short_name="Venom", start_url="/", display="standalone", background_color="#04050a",
-                   theme_color="#04050a", icons=[{"src": "/icon.png?s=192", "sizes": "192x192", "type": "image/png"},
+    return jsonify(name="VENOM", short_name="Venom", start_url="/", display="standalone", background_color="#07090d",
+                   theme_color="#07090d", icons=[{"src": "/icon.png?s=192", "sizes": "192x192", "type": "image/png"},
                                                   {"src": "/icon.png?s=512", "sizes": "512x512", "type": "image/png"}])
 
 
