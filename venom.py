@@ -227,7 +227,14 @@ def _call_gemini_model(G_MODEL, key, system, contents, search):
         search = False
         r = requests.post(url, params={"key": key}, json=body, timeout=90)
     if r.status_code != 200:
-        raise RuntimeError(f"gemini {r.status_code}")
+        # Preserve Google's diagnostic message so VENOM can show the real cause
+        # (e.g. INVALID_ARGUMENT, FAILED_PRECONDITION, API_KEY_INVALID).
+        try:
+            detail = r.json().get("error", {}).get("message") or r.text
+        except (ValueError, AttributeError):
+            detail = r.text
+        detail = str(detail).replace(key, "[API KEY HIDDEN]")[:700]
+        raise RuntimeError(f"gemini {r.status_code}: {detail}")
     cand = r.json()["candidates"][0]
     text = "".join(p.get("text", "") for p in cand["content"]["parts"]).strip()
     if search:
