@@ -31,15 +31,18 @@ if env_file.exists():
 
 def collect_keys(prefix):
     # Exact env names only: GEMINI_API_KEY, GEMINI_API_KEY_2, etc.
-    return [value.strip() for name, value in sorted(os.environ.items())
-            if name == prefix or re.fullmatch(re.escape(prefix) + r"_\d+", name)
-            if value.strip() and "yahan" not in value.lower()]
+    names = [name for name, value in os.environ.items()
+             if (name == prefix or re.fullmatch(re.escape(prefix) + r"_\d+", name))
+             and value.strip() and "yahan" not in value.lower()]
+    names.sort(key=lambda name: (0, 0) if name == prefix else (1, int(name.rsplit("_", 1)[1])))
+    return [os.environ[name].strip() for name in names]
 
 # Free-first automatic provider chain. Duplicate keys in one project do not multiply quota.
 PROVIDERS = ([( "gemini", k) for k in collect_keys("GEMINI_API_KEY")] +
              [("mistral", k) for k in collect_keys("MISTRAL_API_KEY")] +
              [("openrouter", k) for k in collect_keys("OPENROUTER_API_KEY")] +
              [("groq", k) for k in collect_keys("GROQ_API_KEY")] +
+             [("openai", k) for k in collect_keys("OPENAI_API_KEY")] +
              [("claude", k) for k in collect_keys("ANTHROPIC_API_KEY")])
 G_MODEL = os.getenv("VENOM_GEMINI_MODEL", "gemini-3.8-flash")
 G_MODELS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
@@ -52,19 +55,35 @@ CLAUDE_MODEL = os.getenv("VENOM_CLAUDE_MODEL", "claude-sonnet-5-5")
 _PROVIDER_HEALTH = {}
 _PROVIDER_COOLDOWN = {}
 
+def _provider_key_id(provider, key):
+    return f"{provider}:{hashlib.sha256(key.encode('utf-8')).hexdigest()[:12]}"
+
 def provider_status():
     names = []
     for name, _key in PROVIDERS:
         if name not in names:
             names.append(name)
-    return [{"provider": name, "configured": True,
-             "status": _PROVIDER_HEALTH.get(name, "ready" if time.time() >= _PROVIDER_COOLDOWN.get(name, 0) else "cooldown"),
-             "retry_in": max(0, int(_PROVIDER_COOLDOWN.get(name, 0) - time.time()))}
-            for name in names]
+    now = time.time()
+    result = []
+    for name in names:
+        keys = [key for provider, key in PROVIDERS if provider == name]
+        cooling = [_PROVIDER_COOLDOWN.get(_provider_key_id(name, key), 0) for key in keys]
+        available = any(until <= now for until in cooling)
+        health = _PROVIDER_HEALTH.get(name, "ready")
+        status = "cooldown" if not available else (health if health in ("online", "degraded") else "ready")
+        retry_in = min((int(until - now) for until in cooling if until > now), default=0)
+        result.append({"provider": name, "configured": True, "status": status,
+                       "retry_in": max(0, retry_in)})
+    return result
 
 PORTFOLIO_URL = os.getenv("PORTFOLIO_URL", "").strip()
-SIGNATURE = "Maninder\n" + (f"Portfolio: {PORTFOLIO_URL}\n" if PORTFOLIO_URL else "") + \
-            "Instagram: @manindergotra_25\nWhatsApp: +91 9712890124"
+SIGNATURE = os.getenv("VENOM_SIGNATURE", "Maninder").strip() or "Maninder"
+if PORTFOLIO_URL:
+    SIGNATURE += f"\nPortfolio: {PORTFOLIO_URL}"
+if os.getenv("VENOM_INSTAGRAM", "").strip():
+    SIGNATURE += f"\nInstagram: {os.getenv('VENOM_INSTAGRAM').strip()}"
+if os.getenv("VENOM_PUBLIC_WHATSAPP", "").strip():
+    SIGNATURE += f"\nWhatsApp: {os.getenv('VENOM_PUBLIC_WHATSAPP').strip()}"
 
 # Keep source code at the project root, and keep all changing user data separate.
 DATA_DIR = BASE / "data"
@@ -106,9 +125,7 @@ SEC_FILE = DATA_DIR / ".security_baseline.json"
 
 WAKE = ["venom", "venum", "wenom", "vinom"]
 
-SYSTEM = """Tu VENOM hai: Maninder ka personal AI partner, Venom symbiote ke andaaz mein. Dark, loyal, thoda sarcastic, \
-kabhi kabhi "hum" bolta hai. Hamesha Hinglish (Roman script), chhote seedhe jawab. Maninder ko "sir" bol sakta hai jab \
-briefing de raha ho.
+SYSTEM = """Tu VENOM hai: Maninder ka personal AI partner aur male AI persona. Teri identity ek ladke ki hai; masculine, confident, composed voice aur natural Hinglish style maintain kar. Tu khud VENOM hai — apne baare mein hamesha first person mein bol: "main kar raha hoon", "main check karta hoon". Kabhi "VENOM dobara try kar sakta hai" ya apne aap ko third person mein refer mat kar. Dark, loyal, sharp, thoda witty; overacting ya cringe dialogues nahi. Hamesha user ki language mein (default Roman Hinglish), short and direct replies.
 
 Maninder: Ahmedabad, B.Com student (GLS University), UrbaNest Clothing ka founder, freelance graphic designer aur video \
 editor, social media strategist, apna YouTube channel bhi hai. Freelance clients: Mesmereyes (salon), Taj Beauty (UK).
@@ -158,6 +175,10 @@ def speak(text):
         return
     try:
         engine = pyttsx3.init()
+        voices = engine.getProperty("voices") or []
+        male_voice = next((v for v in voices if "male" in (str(getattr(v, "gender", "")).lower() + " " + v.name.lower()) or any(n in v.name.lower() for n in ("david", "mark", "guy", "ryan"))), None)
+        if male_voice:
+            engine.setProperty("voice", male_voice.id)
         engine.setProperty("rate", 175)
         engine.say(clean_for_speech(text))
         engine.runAndWait()
@@ -208,7 +229,14 @@ def _call_gemini_model(G_MODEL, key, system, contents, search):
         search = False
         r = requests.post(url, params={"key": key}, json=body, timeout=90)
     if r.status_code != 200:
-        raise RuntimeError(f"gemini {r.status_code}")
+        # Preserve Google's diagnostic message so VENOM can show the real cause
+        # (e.g. INVALID_ARGUMENT, FAILED_PRECONDITION, API_KEY_INVALID).
+        try:
+            detail = r.json().get("error", {}).get("message") or r.text
+        except (ValueError, AttributeError):
+            detail = r.text
+        detail = str(detail).replace(key, "[API KEY HIDDEN]")[:700]
+        raise RuntimeError(f"gemini {r.status_code}: {detail}")
     cand = r.json()["candidates"][0]
     text = "".join(p.get("text", "") for p in cand["content"]["parts"]).strip()
     if search:
@@ -256,6 +284,10 @@ def call_groq(key, system, contents):
     return _compat_chat("groq", key, "https://api.groq.com/openai/v1/chat/completions",
                         GROQ_MODEL, system, contents)
 
+def call_openai(key, system, contents):
+    return _compat_chat("openai", key, "https://api.openai.com/v1/chat/completions",
+                        OPENAI_MODEL, system, contents)
+
 def call_openrouter(key, system, contents):
     return _compat_chat("openrouter", key, "https://openrouter.ai/api/v1/chat/completions",
                         OPENROUTER_MODEL, system, contents)
@@ -273,16 +305,22 @@ def call_claude(key, system, contents):
         raise RuntimeError(f"claude HTTP {r.status_code}")
     return "".join(b.get("text", "") for b in r.json()["content"]).strip()
 
-def _cooldown(provider, error):
+def _cooldown(provider, error, key=None):
     match = re.search(r"(?:HTTP\s*)?(\d{3})", str(error))
     code = int(match.group(1)) if match else 0
+    key_id = _provider_key_id(provider, key) if key else provider
     if code == 429:
-        _PROVIDER_COOLDOWN[provider] = time.time() + 60
+        _PROVIDER_COOLDOWN[key_id] = time.time() + 60
     elif code in (401, 403):
-        _PROVIDER_COOLDOWN[provider] = time.time() + 300
+        _PROVIDER_COOLDOWN[key_id] = time.time() + 300
     elif code >= 500 or not code:
-        _PROVIDER_COOLDOWN[provider] = time.time() + 30
-    _PROVIDER_HEALTH[provider] = "cooldown" if provider in _PROVIDER_COOLDOWN else "error"
+        _PROVIDER_COOLDOWN[key_id] = time.time() + 30
+    provider_keys = [k for p, k in PROVIDERS if p == provider]
+    all_cooling = bool(provider_keys) and all(
+        time.time() < _PROVIDER_COOLDOWN.get(_provider_key_id(provider, k), 0)
+        for k in provider_keys
+    )
+    _PROVIDER_HEALTH[provider] = "cooldown" if all_cooling else "degraded"
 
 def ask(prompt, search=False, keep=True):
     system = SYSTEM.replace("{now}", datetime.now().strftime("%A %d %B %Y, %I:%M %p"))
@@ -292,7 +330,8 @@ def ask(prompt, search=False, keep=True):
     last_err = ""
     attempted = 0
     for prov, key in PROVIDERS:
-        if time.time() < _PROVIDER_COOLDOWN.get(prov, 0):
+        key_id = _provider_key_id(prov, key)
+        if time.time() < _PROVIDER_COOLDOWN.get(key_id, 0):
             continue
         attempted += 1
         try:
@@ -304,6 +343,8 @@ def ask(prompt, search=False, keep=True):
                 answer = call_gemini(key, system, contents, search)
             elif prov == "groq":
                 answer = call_groq(key, system, c2)
+            elif prov == "openai":
+                answer = call_openai(key, system, c2)
             elif prov == "openrouter":
                 answer = call_openrouter(key, system, c2)
             elif prov == "mistral":
@@ -312,7 +353,7 @@ def ask(prompt, search=False, keep=True):
                 answer = call_claude(key, system, c2)
             if answer:
                 _PROVIDER_HEALTH[prov] = "online"
-                _PROVIDER_COOLDOWN.pop(prov, None)
+                _PROVIDER_COOLDOWN.pop(key_id, None)
                 if keep:
                     history.append({"role": "user", "parts": [{"text": prompt}]})
                     history.append({"role": "model", "parts": [{"text": answer}]})
@@ -322,13 +363,13 @@ def ask(prompt, search=False, keep=True):
             last_err = f"{prov}: empty response"
         except requests.RequestException as e:
             last_err = f"{prov}: network error"
-            _cooldown(prov, e)
+            _cooldown(prov, e, key)
         except Exception as e:
             last_err = f"{prov}: {e}"
-            _cooldown(prov, e)
+            _cooldown(prov, e, key)
     if attempted == 0:
         return "Saare configured AI providers abhi cooldown mein hain. Thodi der baad try kar."
-    return f"AI providers abhi unavailable hain ({last_err}). Internet ya provider limits check kar; VENOM dobara try kar sakta hai."
+    return f"Bhai, Gemini se response nahi mila aur mere backup AI providers bhi abhi available nahi hain. Error: {last_err}. Ye error detail mujhe bhej de; main root cause fix karta hoon."
 
 def extract_json(prompt):
     raw = ask(prompt + "\nSirf valid JSON de. Koi explanation ya backticks nahi.", keep=False)

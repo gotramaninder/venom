@@ -46,9 +46,10 @@ logging.getLogger("werkzeug").setLevel(logging.ERROR)
 logging.basicConfig(filename=str(V.LOG_DIR / "venom.log"), level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(threadName)s %(message)s")
 
-LOCK = threading.Lock()
+COMMAND_LOCK = threading.Lock()
 ALERT_LOCK = threading.Lock()
-REPLIES, ALERTS = [], []
+REPLY_LOCAL = threading.local()
+ALERTS = []
 PENDING = {}
 SHUT = {"proc": None}
 LAST = {"path": None, "t": 0}
@@ -73,18 +74,38 @@ V.DEV.update({"क्रोम": "chrome", "नोटपैड": "notepad", "स
               "रिव्यू": "review", "ऑडिट": "audit"})
 
 
+def _emit_reply(item):
+    buffer = getattr(REPLY_LOCAL, "buffer", None)
+    if buffer is not None:
+        buffer.append(item)
+    else:
+        with ALERT_LOCK:
+            ALERTS.append(item)
+
+
+def _capture_replies(fn):
+    buffer = []
+    previous = getattr(REPLY_LOCAL, "buffer", None)
+    REPLY_LOCAL.buffer = buffer
+    try:
+        fn()
+    finally:
+        REPLY_LOCAL.buffer = previous
+    return buffer
+
+
 def _speak(text):
-    REPLIES.append({"say": text, "show": text})
+    _emit_reply({"say": text, "show": text})
 
 
 def _deliver(reply, label="reply"):
     if len(reply) <= 380:
-        REPLIES.append({"say": reply, "show": reply})
+        _emit_reply({"say": reply, "show": reply})
         return
     path = V.OUT_DIR / f"{label}_{datetime.now():%Y%m%d_%H%M%S}.txt"
     path.write_text(reply, encoding="utf-8")
     short = " ".join(re.split(r"(?<=[.!?।])\s+", V.clean_for_speech(reply))[:2])
-    REPLIES.append({"say": short + " Poora jawab screen pe hai aur outputs folder mein save hai.", "show": reply})
+    _emit_reply({"say": short + " Poora jawab screen pe hai aur outputs folder mein save hai.", "show": reply})
 
 
 V.speak = _speak
@@ -162,7 +183,7 @@ def make_png(size):
             if d < 0.22:
                 px = (255, 255, 255)
             elif d < 0.30:
-                px = (179, 136, 255)
+                px = (225, 29, 63)
             elif 0.52 < d < 0.58:
                 px = (230, 236, 245)
             elif 0.72 < d < 0.75:
@@ -187,8 +208,8 @@ def icon():
 
 @app.get("/manifest.json")
 def manifest():
-    return jsonify(name="VENOM", short_name="Venom", start_url="/", display="standalone", background_color="#04050a",
-                   theme_color="#04050a", icons=[{"src": "/icon.png?s=192", "sizes": "192x192", "type": "image/png"},
+    return jsonify(name="VENOM", short_name="Venom", start_url="/", display="standalone", background_color="#07090d",
+                   theme_color="#07090d", icons=[{"src": "/icon.png?s=192", "sizes": "192x192", "type": "image/png"},
                                                   {"src": "/icon.png?s=512", "sizes": "512x512", "type": "image/png"}])
 
 
@@ -269,8 +290,9 @@ def command():
     if not text:
         return jsonify(replies=[], sleep=False)
     extra, sleep = {}, False
-    with LOCK:
-        REPLIES.clear()
+    replies = []
+    with COMMAND_LOCK:
+        REPLY_LOCAL.buffer = replies
         n = V.norm(text)
         try:
             if PENDING.get("close"):
@@ -303,10 +325,11 @@ def command():
             else:
                 V.reload_data()
                 sleep = V.handle(text) == "sleep"
-        except Exception as e:
-            _speak(f"Kuch gadbad hui: {e}")
-        replies = list(REPLIES)
-        REPLIES.clear()
+        except Exception:
+            logging.exception("VENOM command failed")
+            _speak("Command complete nahi ho paya. Logs folder mein error detail check kar.")
+        finally:
+            REPLY_LOCAL.buffer = None
     return jsonify(replies=replies, sleep=sleep, **extra)
 
 
@@ -323,14 +346,16 @@ def upload():
     path = UP_DIR / f"{datetime.now():%Y%m%d_%H%M%S}_{secrets.token_hex(4)}{ext}"
     f.save(path)
     LAST["path"], LAST["t"] = path, time.time()
-    with LOCK:
-        REPLIES.clear()
+    replies = []
+    with COMMAND_LOCK:
+        REPLY_LOCAL.buffer = replies
         try:
             _deliver(studio.critique_media(path, note), "review")
-        except Exception as e:
-            _speak(f"Review mein gadbad hui: {e}")
-        replies = list(REPLIES)
-        REPLIES.clear()
+        except Exception:
+            logging.exception("VENOM media review failed")
+            _speak("Review complete nahi ho paya. Logs folder mein error detail check kar.")
+        finally:
+            REPLY_LOCAL.buffer = None
     return jsonify(replies=replies)
 
 
@@ -348,14 +373,30 @@ def cancel_shutdown():
 def status():
     auth()
     clients = V.load_json(V.CLIENT_FILE, [])
+    clients = [x for x in clients if isinstance(x, dict)] if isinstance(clients, list) else []
     month = datetime.now().strftime("%Y-%m")
-    got = sum(p["amount"] for c in clients for p in c.get("payments", []) if p["date"].startswith(month))
-    pend = sum(max(V.num(c.get("price")) - V.num(c.get("paid")), 0) for c in clients)
+    got = sum(V.num(p.get("amount")) for client in clients
+              for p in (client.get("payments", []) if isinstance(client.get("payments", []), list) else [])
+              if isinstance(p, dict) and str(p.get("date", "")).startswith(month))
+    pend = sum(max(V.num(client.get("price")) - V.num(client.get("paid")), 0) for client in clients)
     leads = V.load_json(V.DATA_DIR / "leads.json", [])
     queue = V.load_json(V.DATA_DIR / "queue.json", [])
     briefs = V.load_json(V.DATA_DIR / "briefs.json", [])
+    leads = [x for x in leads if isinstance(x, dict)] if isinstance(leads, list) else []
+    queue = [x for x in queue if isinstance(x, dict)] if isinstance(queue, list) else []
+    briefs = [x for x in briefs if isinstance(x, dict)] if isinstance(briefs, list) else []
     now = datetime.now()
-    meets = sorted([m for m in V.load_meetings() if datetime.strptime(m["when"], "%Y-%m-%d %H:%M") >= now], key=lambda m: m["when"])
+    meets = []
+    for meeting in V.load_meetings():
+        if not isinstance(meeting, dict):
+            continue
+        try:
+            when = datetime.strptime(str(meeting.get("when", "")), "%Y-%m-%d %H:%M")
+        except ValueError:
+            continue
+        if when >= now:
+            meets.append((when, meeting))
+    meets.sort(key=lambda item: item[0])
     stats = {}
     if psutil:
         stats = {"cpu": psutil.cpu_percent(), "ram": psutil.virtual_memory().percent}
@@ -371,8 +412,8 @@ def status():
     return jsonify(stats=stats, keys=len(V.PROVIDERS), ai_providers=V.provider_status(), received=got, pending=pend,
                    leads=sum(1 for x in leads if x.get("status") == "new"),
                    queue=sum(1 for x in queue if x.get("status") in ("pending", "approved")),
-                   meeting=(f"{meets[0]['title']} — {meets[0]['when']}" if meets else ""),
-                   brief=(briefs[-1]["text"][:420] if briefs else ""), alerts=alerts, portfolio=bool(V.PORTFOLIO_URL),
+                   meeting=(f"{meets[0][1].get('title', 'Meeting')} — {meets[0][1].get('when', '')}" if meets else ""),
+                   brief=(str(briefs[-1].get("text", ""))[:420] if briefs else ""), alerts=alerts, portfolio=bool(V.PORTFOLIO_URL),
                    phone_alerts=notify.configured(), remote=bool(PIN))
 
 
@@ -416,14 +457,8 @@ def monitor():
     while True:
         time.sleep(20)
         try:
-            with LOCK:
-                REPLIES.clear()
-                V.check_reminders()
-                rem = list(REPLIES)
-                REPLIES.clear()
-                V.check_integrity()
-                integ = list(REPLIES)
-                REPLIES.clear()
+            rem = _capture_replies(V.check_reminders)
+            integ = _capture_replies(V.check_integrity)
             if rem or integ:
                 with ALERT_LOCK:
                     ALERTS.extend(rem + integ)

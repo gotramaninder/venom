@@ -5,7 +5,7 @@
 ## Bas ye steps follow karo
 
 1. GitHub se ZIP download karo aur **Extract All** karke ek hi naya folder banao, jaise `C:\\VENOM_FINAL`. Purane VENOM folders ko abhi delete mat karna; woh backup rahenge.
-2. Extracted folder ke andar `1_SETUP_VENOM.bat` double-click karo. Ye isolated Python environment banayega, core packages install karega aur API wizard kholega.
+2. Official `VENOM_FINAL.zip` package mein portable Python runtime aur core dependencies included hain. Extracted folder ke andar `1_SETUP_VENOM.bat` double-click karo; Python alag se install karne ki zaroorat nahi. Setup API wizard kholega.
 3. Agar purane VENOM folder mein data/settings hain, `IMPORT_OLD_VENOM.bat` double-click karo aur purane VENOM folder ka full path paste karo. Ye existing values ko overwrite kiye bina missing `.env`, client records, leads, meetings, chat history aur outputs import karega. Purana folder untouched rahega.
 4. Agar old API settings import hui hain, `3_API_SETUP.bat` dobara chala kar missing provider keys add karo.
 5. Roz sirf `2_START_VENOM.bat` double-click karo.
@@ -25,7 +25,7 @@
 - `data/` — clients, payments, leads, meetings, settings, history.
 - `logs/` — diagnostic logs.
 - `outputs/` — generated reports and uploaded media.
-- `.venv/` — isolated Python environment, setup khud banata hai.
+- `runtime/` — official portable package ke saath bundled Python runtime; ise delete/move mat karna.\n- `.venv/` — source-only setup ke liye isolated Python environment.
 - `.env` — private API keys and settings.
 
 ## Data safety
@@ -44,7 +44,7 @@
 
 ## Free API note
 
-Free model availability, account eligibility, and request quotas vary by provider and can change. Automatic fallback tries configured providers in order; it cannot guarantee uninterrupted or unlimited service.
+Free model availability, account eligibility, and request quotas vary by provider and can change. Automatic fallback tries configured providers in order; it cannot guarantee uninterrupted or unlimited service. OpenAI and Claude are optional paid API providers; a ChatGPT subscription does not include OpenAI API credit.
 
 ## Troubleshooting
 

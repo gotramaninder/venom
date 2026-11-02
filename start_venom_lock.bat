@@ -1,10 +1,10 @@
 @echo off
+setlocal
 cd /d "%~dp0"
-if not exist ".venv\Scripts\python.exe" (
- echo Run 1_SETUP_VENOM.bat first.
- pause
- exit /b 1
-)
-start "VENOM Scout" /min ".venv\Scripts\python.exe" scout.py
-start "VENOM Server" /min ".venv\Scripts\python.exe" jarvis.py --nobrowser
-start "VENOM Voice" /min ".venv\Scripts\python.exe" venom.py
+title VENOM - BACKGROUND START
+set "PYTHON_EXE="
+if exist "runtime\python.exe" set "PYTHON_EXE=runtime\python.exe"
+if not defined PYTHON_EXE if exist ".venv\Scripts\python.exe" set "PYTHON_EXE=.venv\Scripts\python.exe"
+if not defined PYTHON_EXE exit /b 1
+start "VENOM Scout" /min "%PYTHON_EXE%" scout.py
+start "VENOM Server" /min "%PYTHON_EXE%" jarvis.py --nobrowser

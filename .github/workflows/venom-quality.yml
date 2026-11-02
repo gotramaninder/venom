@@ -1,0 +1,95 @@
+name: VENOM quality gate
+
+on:
+  push:
+    branches: [main, "venom/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install runtime and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+      - name: Compile Python modules
+        run: python -m compileall -q venom.py jarvis.py notify.py studio.py scout.py api_setup.py import_old_venom.py dashboard.py
+      - name: Check HUD JavaScript syntax
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("static/jarvis.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
+          assert scripts, "No inline HUD script found"
+          ids = set(re.findall(r'\bid="([^"]+)"', html))
+          refs = set(re.findall(r"\$\('([^']+)'\)", scripts[0]))
+          missing = sorted(refs - ids)
+          assert not missing, f"HUD references missing DOM IDs: {missing}"
+          Path("/tmp/venom-hud.js").write_text("\n".join(scripts), encoding="utf-8")
+          PY
+          node --check /tmp/venom-hud.js
+      - name: Run Flask smoke tests
+        run: pytest -q
+      - name: Verify no secret files are tracked
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$|\.pem$|\.key$'; then
+            echo "A secret file appears to be tracked."
+            exit 1
+          fi
+
+  package-windows:
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build clean portable package
+        shell: pwsh
+        run: |
+          $exclude = @(".git", ".venv", "venv", "data", "logs", "outputs", "__pycache__", ".pytest_cache", ".github", "tests", "dist", "VENOM_FINAL.zip")
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Get-ChildItem -Force | Where-Object { $_.Name -notin $exclude -and $_.Name -ne ".env" -and $_.Extension -ne ".zip" } | ForEach-Object {
+            Copy-Item $_.FullName -Destination dist -Recurse -Force
+          }
+          if (Test-Path "dist/.env") { Remove-Item "dist/.env" -Force }
+          New-Item -ItemType Directory -Force -Path "dist/data","dist/logs","dist/outputs" | Out-Null
+          $runtime = Join-Path (Get-Location) "dist/runtime"
+          New-Item -ItemType Directory -Force -Path $runtime | Out-Null
+          $pythonZip = Join-Path $env:RUNNER_TEMP "python-3.11.9-embed-amd64.zip"
+          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip" -OutFile $pythonZip
+          Expand-Archive -Path $pythonZip -DestinationPath $runtime -Force
+          $pth = Get-ChildItem $runtime -Filter "*._pth" | Select-Object -First 1
+          Set-Content -Path $pth.FullName -Value @("python311.zip", ".", "Lib\site-packages", "import site") -Encoding ascii
+          New-Item -ItemType Directory -Force -Path (Join-Path $runtime "Lib/site-packages") | Out-Null
+          python -m pip install --disable-pip-version-check --target (Join-Path $runtime "Lib/site-packages") -r "dist/requirements.txt"
+          & (Join-Path $runtime "python.exe") -c "import flask, requests, psutil; print('VENOM portable runtime OK')"
+          Push-Location dist
+          & (Join-Path $runtime "python.exe") -c "import sys; sys.path.insert(0, '.'); import jarvis; client=jarvis.app.test_client(); r=client.get('/', base_url='http://127.0.0.1:8765'); assert r.status_code == 200; print('VENOM Windows HUD smoke test OK')"
+          Pop-Location
+          Get-ChildItem "dist" -Directory -Recurse -Filter "__pycache__" | Remove-Item -Recurse -Force
+          Get-ChildItem "dist/logs" -File -ErrorAction SilentlyContinue | Remove-Item -Force
+          Get-ChildItem "dist/data" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne ".gitkeep" } | Remove-Item -Force
+          Get-ChildItem "dist/outputs" -File -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force
+          Compress-Archive -Path "dist/*" -DestinationPath "VENOM_FINAL.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VENOM_FINAL
+          path: VENOM_FINAL.zip
+          if-no-files-found: error
+          retention-days: 14
