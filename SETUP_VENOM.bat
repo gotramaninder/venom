@@ -52,26 +52,11 @@ if errorlevel 1 (
 )
 
 echo.
-echo [4/6] Settings, .env file
-if exist .env (
-  echo .env pehle se hai, usko chhed nahi raha.
-  goto envdone
+echo [4/6] AI providers configure kar raha hu...
+python api_setup.py
+if errorlevel 1 (
+  echo API setup wizard complete nahi hua. Baad mein python api_setup.py chala sakta hai.
 )
-echo.
-echo Ab Gemini key chahiye, free milti hai. Browser khul raha hai.
-echo   1. Google se login kar
-echo   2. Create API key daba
-echo   3. Key copy kar
-start "" "https://aistudio.google.com/apikey"
-echo.
-set "GKEY="
-set /p "GKEY=Key yahan paste kar aur Enter daba: "
-set "PURL="
-set /p "PURL=Portfolio link paste kar, nahi hai to sirf Enter daba: "
-> .env echo GEMINI_API_KEY=!GKEY!
->> .env echo PORTFOLIO_URL=!PURL!
-if "!GKEY!"=="" echo WARNING: key khali rahi. .env ko Notepad se kholke GEMINI_API_KEY ke aage key bhar de.
-:envdone
 
 echo.
 echo [5/6] Desktop pe Venom shortcut bana raha hu...
