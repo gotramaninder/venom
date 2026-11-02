@@ -10,11 +10,11 @@ import streamlit as st
 import venom as V
 
 BASE = V.BASE
-LEADS_F = BASE / "leads.json"
-QUEUE_F = BASE / "queue.json"
-YT_F = BASE / "youtube_plan.json"
-BRIEF_F = BASE / "briefs.json"
-CFG_F = BASE / "scout_config.json"
+LEADS_F = V.DATA_DIR / "leads.json"
+QUEUE_F = V.DATA_DIR / "queue.json"
+YT_F = V.DATA_DIR / "youtube_plan.json"
+BRIEF_F = V.DATA_DIR / "briefs.json"
+CFG_F = V.DATA_DIR / "scout_config.json"
 DEFAULT_CFG = {"niches": ["salons and beauty studios Ahmedabad", "clothing and fashion brands Gujarat",
                           "coaching institutes Gujarat"], "interval_hours": 8, "max_new_per_run": 6}
 
