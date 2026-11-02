@@ -78,3 +78,11 @@ def test_status_tolerates_corrupt_local_records(monkeypatch):
     )
     assert response.status_code == 200
     assert response.get_json()["meeting"] == ""
+
+
+
+def test_api_wizard_accepts_numbered_backup_key():
+    import api_setup
+
+    assert api_setup.has_provider_key({"GEMINI_API_KEY_2": "example-key"})
+    assert not api_setup.has_provider_key({"GEMINI_API_KEY_2": ""})
