@@ -1,5 +1,3 @@
 @echo off
-REM Venom ek click mein: background scout + HUD (screen wali window)
-cd /d %~dp0
-start "Venom Scout" /min python scout.py
-start "Venom HUD" /min python jarvis.py --app
+cd /d "%~dp0"
+call 2_START_VENOM.bat
