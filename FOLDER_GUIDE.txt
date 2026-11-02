@@ -1,11 +1,25 @@
-VENOM FOLDER GUIDE
+VENOM - SIMPLE FOLDER GUIDE
 
-BAS YE YAAD RAKH:
-1. Pehli baar: 1_SETUP_VENOM.bat
-2. Roz chalane ke liye: 2_START_VENOM.bat
-3. API keys badalni hon: 3_API_SETUP.bat
+Pehli baar:
+  1_SETUP_VENOM.bat
 
-BAAKI .py FILES INTERNAL ENGINE HAIN. UNHE MOVE, DELETE YA RENAME MAT KARNA.
+Purane VENOM ka data lana ho:
+  IMPORT_OLD_VENOM.bat
+
+Roz chalana:
+  2_START_VENOM.bat
+
+API keys:
+  3_API_SETUP.bat
+
+Backup:
+  BACKUP_VENOM.bat
+
+Optional:
+  4_DASHBOARD_SETUP.bat
+  5_PHONE_SETUP.bat
+
+BAAKI .py FILES ENGINE KE INTERNAL PARTS HAIN. UNHE MOVE, DELETE YA RENAME MAT KARNA.
 
 data = clients, payments, leads, meetings, settings, chat history
 logs = error / activity logs
@@ -14,4 +28,4 @@ static = VENOM HUD screen
 .venv = Python environment (setup khud banata hai)
 .env = private API keys (GitHub par kabhi upload mat karna)
 
-Purane VENOM folder se naya setup karte waqt .env, data aur outputs ka backup zaroor rakhna.
+Purana folder safe rahega. Importer existing data overwrite nahi karta.
