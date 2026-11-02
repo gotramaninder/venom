@@ -1,9 +1,3 @@
-requests
 flask
+requests
 psutil
-# Dashboard (optional):
-streamlit
-# Lock-screen desktop voice (venom.py) ke liye, HUD ko inki zaroorat nahi:
-SpeechRecognition
-pyttsx3
-pyaudio
