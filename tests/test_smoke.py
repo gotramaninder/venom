@@ -150,3 +150,74 @@ def test_expired_provider_cooldown_recovers_to_ready(monkeypatch):
     monkeypatch.setattr(venom, "_PROVIDER_HEALTH", {"gemini": "cooldown"})
     monkeypatch.setattr(venom.time, "time", lambda: 100)
     assert venom.provider_status()[0]["status"] == "ready"
+
+
+
+def test_shutdown_requires_explicit_confirmation(monkeypatch):
+    module = load_app()
+    module.PENDING.clear()
+    calls = []
+    monkeypatch.setattr(module, "start_shutdown", lambda: (calls.append("started") or {"countdown": 15}))
+    client = module.app.test_client()
+
+    first = client.post(
+        "/api/command",
+        base_url="http://127.0.0.1:8765",
+        headers={"X-Venom-Token": module.TOKEN},
+        json={"text": "shutdown laptop"},
+    )
+    assert first.status_code == 200
+    assert module.PENDING.get("shutdown") is True
+    assert "countdown" not in first.get_json()
+    assert calls == []
+
+    second = client.post(
+        "/api/command",
+        base_url="http://127.0.0.1:8765",
+        headers={"X-Venom-Token": module.TOKEN},
+        json={"text": "haan"},
+    )
+    assert second.status_code == 200
+    assert second.get_json()["countdown"] == 15
+    assert calls == ["started"]
+    module.PENDING.clear()
+
+
+def test_app_close_requires_confirmation(monkeypatch):
+    module = load_app()
+    module.PENDING.clear()
+    closed = []
+    monkeypatch.setattr(module.V, "match_app", lambda text: "Chrome")
+    monkeypatch.setattr(module, "do_close", lambda name: closed.append(name))
+    client = module.app.test_client()
+
+    first = client.post(
+        "/api/command",
+        base_url="http://127.0.0.1:8765",
+        headers={"X-Venom-Token": module.TOKEN},
+        json={"text": "close chrome"},
+    )
+    assert first.status_code == 200
+    assert module.PENDING.get("close") == "Chrome"
+    assert closed == []
+
+    second = client.post(
+        "/api/command",
+        base_url="http://127.0.0.1:8765",
+        headers={"X-Venom-Token": module.TOKEN},
+        json={"text": "haan"},
+    )
+    assert second.status_code == 200
+    assert closed == ["Chrome"]
+    module.PENDING.clear()
+
+
+def test_remote_api_requires_authenticated_session():
+    module = load_app()
+    client = module.app.test_client()
+    response = client.get(
+        "/api/status",
+        base_url="http://example.com",
+        headers={"X-Venom-Token": module.TOKEN},
+    )
+    assert response.status_code == 403
