@@ -9,10 +9,10 @@ from datetime import datetime
 import venom as V
 
 BASE = V.BASE
-LEADS_F = BASE / "leads.json"
-CFG_F = BASE / "scout_config.json"
-BRIEF_F = BASE / "briefs.json"
-LOG_F = BASE / "scout.log"
+LEADS_F = V.DATA_DIR / "leads.json"
+CFG_F = V.DATA_DIR / "scout_config.json"
+BRIEF_F = V.DATA_DIR / "briefs.json"
+LOG_F = V.LOG_DIR / "scout.log"
 DEFAULT_CFG = {"niches": ["salons and beauty studios Ahmedabad", "clothing and fashion brands Gujarat",
                           "coaching institutes Gujarat"], "interval_hours": 8, "max_new_per_run": 6}
 
