@@ -42,6 +42,7 @@ PROVIDERS = ([( "gemini", k) for k in collect_keys("GEMINI_API_KEY")] +
              [("mistral", k) for k in collect_keys("MISTRAL_API_KEY")] +
              [("openrouter", k) for k in collect_keys("OPENROUTER_API_KEY")] +
              [("groq", k) for k in collect_keys("GROQ_API_KEY")] +
+             [("openai", k) for k in collect_keys("OPENAI_API_KEY")] +
              [("claude", k) for k in collect_keys("ANTHROPIC_API_KEY")])
 G_MODEL = os.getenv("VENOM_GEMINI_MODEL", "gemini-3.8-flash")
 G_MODELS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
@@ -273,6 +274,10 @@ def call_groq(key, system, contents):
     return _compat_chat("groq", key, "https://api.groq.com/openai/v1/chat/completions",
                         GROQ_MODEL, system, contents)
 
+def call_openai(key, system, contents):
+    return _compat_chat("openai", key, "https://api.openai.com/v1/chat/completions",
+                        OPENAI_MODEL, system, contents)
+
 def call_openrouter(key, system, contents):
     return _compat_chat("openrouter", key, "https://openrouter.ai/api/v1/chat/completions",
                         OPENROUTER_MODEL, system, contents)
@@ -328,6 +333,8 @@ def ask(prompt, search=False, keep=True):
                 answer = call_gemini(key, system, contents, search)
             elif prov == "groq":
                 answer = call_groq(key, system, c2)
+            elif prov == "openai":
+                answer = call_openai(key, system, c2)
             elif prov == "openrouter":
                 answer = call_openrouter(key, system, c2)
             elif prov == "mistral":
