@@ -1,13 +1,20 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-if not exist "data" mkdir data
-if not exist "outputs" mkdir outputs
+set "ITEMS="
+if exist ".env" set "ITEMS=.env"
+if exist "data" set "ITEMS=!ITEMS! data"
+if exist "outputs" set "ITEMS=!ITEMS! outputs"
+if not defined ITEMS (
+ echo Nothing to back up yet.
+ pause
+ exit /b 0
+)
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set "STAMP=%%i"
 set "DEST=VENOM_BACKUP_%STAMP%.zip"
-powershell -NoProfile -Command "Compress-Archive -Path '.env','data','outputs' -DestinationPath '%DEST%' -Force -ErrorAction Stop"
+powershell -NoProfile -Command "$items=@(); if(Test-Path '.env'){$items+= '.env'}; if(Test-Path 'data'){$items+= 'data'}; if(Test-Path 'outputs'){$items+= 'outputs'}; Compress-Archive -Path $items -DestinationPath '%DEST%' -Force -ErrorAction Stop"
 if errorlevel 1 (
- echo Backup failed. Make sure .env, data and outputs folders are available.
+ echo Backup failed. Check available disk space and try again.
  pause
  exit /b 1
 )
