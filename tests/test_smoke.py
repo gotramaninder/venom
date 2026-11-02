@@ -86,3 +86,17 @@ def test_api_wizard_accepts_numbered_backup_key():
 
     assert api_setup.has_provider_key({"GEMINI_API_KEY_2": "example-key"})
     assert not api_setup.has_provider_key({"GEMINI_API_KEY_2": ""})
+
+
+
+def test_provider_key_cooldown_is_independent(monkeypatch):
+    import venom
+
+    monkeypatch.setattr(venom, "PROVIDERS", [("gemini", "key-a"), ("gemini", "key-b")])
+    monkeypatch.setattr(venom, "_PROVIDER_COOLDOWN", {})
+    monkeypatch.setattr(venom, "_PROVIDER_HEALTH", {})
+    venom._cooldown("gemini", RuntimeError("HTTP 429"), "key-a")
+
+    assert venom._provider_key_id("gemini", "key-a") in venom._PROVIDER_COOLDOWN
+    assert venom._provider_key_id("gemini", "key-b") not in venom._PROVIDER_COOLDOWN
+    assert venom.provider_status()[0]["status"] == "degraded"
