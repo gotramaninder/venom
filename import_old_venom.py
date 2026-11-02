@@ -10,7 +10,7 @@ OUTPUTS.mkdir(exist_ok=True)
 
 DATA_FILES = {
     "history.json", "meetings.json", "clients.json", "rates.json", "apps.json",
-    "notes.txt", ".integrity.json", ".security_baseline.json", ".sessions.json",
+    "notes.txt", ".sessions.json",
     ".push.json", "leads.json", "queue.json", "briefs.json", "youtube_plan.json",
     "scout_config.json",
 }
