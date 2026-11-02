@@ -66,16 +66,44 @@ PORTFOLIO_URL = os.getenv("PORTFOLIO_URL", "").strip()
 SIGNATURE = "Maninder\n" + (f"Portfolio: {PORTFOLIO_URL}\n" if PORTFOLIO_URL else "") + \
             "Instagram: @manindergotra_25\nWhatsApp: +91 9712890124"
 
-HISTORY_FILE = BASE / "history.json"
-MEET_FILE = BASE / "meetings.json"
-CLIENT_FILE = BASE / "clients.json"
-RATE_FILE = BASE / "rates.json"
-APPS_FILE = BASE / "apps.json"
-NOTES_FILE = BASE / "notes.txt"
-INTEG_FILE = BASE / ".integrity.json"
-SEC_FILE = BASE / ".security_baseline.json"
+# Keep source code at the project root, and keep all changing user data separate.
+DATA_DIR = BASE / "data"
+LOG_DIR = BASE / "logs"
 OUT_DIR = BASE / "outputs"
-OUT_DIR.mkdir(exist_ok=True)
+for folder in (DATA_DIR, LOG_DIR, OUT_DIR):
+    folder.mkdir(parents=True, exist_ok=True)
+
+# One-time, safe migration from older VENOM layouts. Never overwrite existing data.
+def migrate_legacy_data():
+    data_files = ("history.json", "meetings.json", "clients.json", "rates.json",
+                  "apps.json", "notes.txt", ".integrity.json", ".security_baseline.json",
+                  ".sessions.json", ".push.json", "leads.json", "queue.json",
+                  "briefs.json", "youtube_plan.json", "scout_config.json")
+    log_files = ("venom.log", "scout.log")
+    for name in data_files:
+        old, new = BASE / name, DATA_DIR / name
+        if old.exists() and not new.exists():
+            try:
+                old.replace(new)
+            except OSError:
+                pass
+    for name in log_files:
+        old, new = BASE / name, LOG_DIR / name
+        if old.exists() and not new.exists():
+            try:
+                old.replace(new)
+            except OSError:
+                pass
+
+migrate_legacy_data()
+HISTORY_FILE = DATA_DIR / "history.json"
+MEET_FILE = DATA_DIR / "meetings.json"
+CLIENT_FILE = DATA_DIR / "clients.json"
+RATE_FILE = DATA_DIR / "rates.json"
+APPS_FILE = DATA_DIR / "apps.json"
+NOTES_FILE = DATA_DIR / "notes.txt"
+INTEG_FILE = DATA_DIR / ".integrity.json"
+SEC_FILE = DATA_DIR / ".security_baseline.json"
 
 WAKE = ["venom", "venum", "wenom", "vinom"]
 
