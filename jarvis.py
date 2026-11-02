@@ -43,6 +43,8 @@ PUSH_F = BASE / ".push.json"
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 300 * 1024 * 1024
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
+logging.basicConfig(filename=str(BASE / "venom.log"), level=logging.INFO,
+                    format="%(asctime)s %(levelname)s %(threadName)s %(message)s")
 
 LOCK = threading.Lock()
 ALERT_LOCK = threading.Lock()
@@ -252,7 +254,13 @@ def studio_route(text, n):
 def index():
     if not authed():
         return redirect("/login") if PIN else abort(403)
-    html = (BASE / "static" / "jarvis.html").read_text(encoding="utf-8").replace("__TOKEN__", TOKEN)
+    hud_file = BASE / "static" / "jarvis.html"
+    if not hud_file.is_file():
+        hud_file = BASE / "jarvis.html"  # backward-compatible fallback for older folder layouts
+    if not hud_file.is_file():
+        app.logger.error("HUD file missing: checked %s and %s", BASE / "static" / "jarvis.html", BASE / "jarvis.html")
+        abort(500, description="VENOM HUD file missing. Restore static/jarvis.html from the repository.")
+    html = hud_file.read_text(encoding="utf-8").replace("__TOKEN__", TOKEN)
     return Response(html, mimetype="text/html", headers={"Cache-Control": "no-store"})
 
 
@@ -314,7 +322,7 @@ def upload():
     ext = Path(f.filename or "").suffix.lower()
     if ext not in {".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".webm", ".mkv", ".m4v"}:
         return jsonify(replies=[{"say": "Sirf image ya video bhej.", "show": "Sirf image (jpg/png/webp) ya video (mp4/mov) bhej."}])
-    path = UP_DIR / f"{datetime.now():%Y%m%d_%H%M%S}{ext}"
+    path = UP_DIR / f"{datetime.now():%Y%m%d_%H%M%S}_{secrets.token_hex(4)}{ext}"
     f.save(path)
     LAST["path"], LAST["t"] = path, time.time()
     with LOCK:
@@ -426,7 +434,7 @@ def monitor():
             push_due_meetings()
             morning_push()
         except Exception:
-            pass
+            logging.exception("VENOM background monitor cycle failed")
 
 
 def open_ui():
