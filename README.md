@@ -44,7 +44,7 @@
 
 ## Free API note
 
-Free model availability, account eligibility, and request quotas vary by provider and can change. Automatic fallback tries configured providers in order; it cannot guarantee uninterrupted or unlimited service.
+Free model availability, account eligibility, and request quotas vary by provider and can change. Automatic fallback tries configured providers in order; it cannot guarantee uninterrupted or unlimited service. OpenAI and Claude are optional paid API providers; a ChatGPT subscription does not include OpenAI API credit.
 
 ## Troubleshooting
 
