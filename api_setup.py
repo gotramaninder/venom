@@ -9,7 +9,7 @@ BASE = Path(__file__).parent
 ENV_FILE = BASE / ".env"
 PROVIDERS = [
     ("Gemini (recommended primary)", "GEMINI_API_KEY", "https://aistudio.google.com/apikey"),
-    ("Groq (fast backup)", "GROQ_API_KEY", "https://console.groq.com/keys"),
+    ("Groq (optional; enable only if your account shows free quota)", "GROQ_API_KEY", "https://console.groq.com/keys"),
     ("OpenRouter (free-model backup)", "OPENROUTER_API_KEY", "https://openrouter.ai/settings/keys"),
     ("Mistral (free-mode backup)", "MISTRAL_API_KEY", "https://console.mistral.ai/api-keys/"),
 ]
