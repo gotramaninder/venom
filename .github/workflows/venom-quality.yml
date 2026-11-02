@@ -71,7 +71,7 @@ jobs:
           Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip" -OutFile $pythonZip
           Expand-Archive -Path $pythonZip -DestinationPath $runtime -Force
           $pth = Get-ChildItem $runtime -Filter "*._pth" | Select-Object -First 1
-          Set-Content -Path $pth.FullName -Value @("python311.zip", ".", "Lib\\site-packages", "import site") -Encoding ascii
+          Set-Content -Path $pth.FullName -Value @("python311.zip", ".", "Lib\site-packages", "import site") -Encoding ascii
           New-Item -ItemType Directory -Force -Path (Join-Path $runtime "Lib/site-packages") | Out-Null
           python -m pip install --disable-pip-version-check --target (Join-Path $runtime "Lib/site-packages") -r "dist/requirements.txt"
           & (Join-Path $runtime "python.exe") -c "import flask, requests, psutil; print('VENOM portable runtime OK')"
