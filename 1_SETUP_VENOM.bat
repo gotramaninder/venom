@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 title VENOM - ONE TIME SETUP
 echo.
@@ -29,14 +29,14 @@ if exist "runtime\python.exe" (
   )
   if not exist ".venv\Scripts\python.exe" (
     echo [1/4] Creating isolated VENOM environment...
-    %PY% -m venv .venv
+    !PY! -m venv .venv
     if errorlevel 1 goto failed
   )
   set "PYTHON_EXE=.venv\Scripts\python.exe"
   echo [2/4] Installing core packages...
-  "%PYTHON_EXE%" -m pip install --upgrade pip
+  "!PYTHON_EXE!" -m pip install --upgrade pip
   if errorlevel 1 goto failed
-  "%PYTHON_EXE%" -m pip install -r requirements.txt
+  "!PYTHON_EXE!" -m pip install -r requirements.txt
   if errorlevel 1 goto failed
 )
 
@@ -47,7 +47,7 @@ if not exist "outputs" mkdir "outputs"
 if not exist "outputs\uploads" mkdir "outputs\uploads"
 
 echo [4/4] Secure API setup...
-"%PYTHON_EXE%" api_setup.py
+"!PYTHON_EXE!" api_setup.py
 if errorlevel 1 (
   echo.
   echo API setup was skipped or incomplete.
@@ -65,6 +65,6 @@ exit /b 0
 
 :failed
 echo.
-echo SETUP FAILED. Check internet connection and run 1_SETUP_VENOM.bat again.
+echo SETUP FAILED. Check the error above, then run 1_SETUP_VENOM.bat again.
 pause
 exit /b 1
