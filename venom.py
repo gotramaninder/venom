@@ -69,7 +69,8 @@ def provider_status():
         keys = [key for provider, key in PROVIDERS if provider == name]
         cooling = [_PROVIDER_COOLDOWN.get(_provider_key_id(name, key), 0) for key in keys]
         available = any(until <= now for until in cooling)
-        status = _PROVIDER_HEALTH.get(name, "ready" if available else "cooldown")
+        health = _PROVIDER_HEALTH.get(name, "ready")
+        status = "cooldown" if not available else (health if health in ("online", "degraded") else "ready")
         retry_in = min((int(until - now) for until in cooling if until > now), default=0)
         result.append({"provider": name, "configured": True, "status": status,
                        "retry_in": max(0, retry_in)})
@@ -356,7 +357,7 @@ def ask(prompt, search=False, keep=True):
             _cooldown(prov, e, key)
         except Exception as e:
             last_err = f"{prov}: {e}"
-            _cooldown(prov, e)
+            _cooldown(prov, e, key)
     if attempted == 0:
         return "Saare configured AI providers abhi cooldown mein hain. Thodi der baad try kar."
     return f"AI providers abhi unavailable hain ({last_err}). Internet ya provider limits check kar; VENOM dobara try kar sakta hai."
