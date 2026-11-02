@@ -46,9 +46,10 @@ logging.getLogger("werkzeug").setLevel(logging.ERROR)
 logging.basicConfig(filename=str(V.LOG_DIR / "venom.log"), level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(threadName)s %(message)s")
 
-LOCK = threading.Lock()
+COMMAND_LOCK = threading.Lock()
 ALERT_LOCK = threading.Lock()
-REPLIES, ALERTS = [], []
+REPLY_LOCAL = threading.local()
+ALERTS = []
 PENDING = {}
 SHUT = {"proc": None}
 LAST = {"path": None, "t": 0}
@@ -73,18 +74,38 @@ V.DEV.update({"क्रोम": "chrome", "नोटपैड": "notepad", "स
               "रिव्यू": "review", "ऑडिट": "audit"})
 
 
+def _emit_reply(item):
+    buffer = getattr(REPLY_LOCAL, "buffer", None)
+    if buffer is not None:
+        buffer.append(item)
+    else:
+        with ALERT_LOCK:
+            ALERTS.append(item)
+
+
+def _capture_replies(fn):
+    buffer = []
+    previous = getattr(REPLY_LOCAL, "buffer", None)
+    REPLY_LOCAL.buffer = buffer
+    try:
+        fn()
+    finally:
+        REPLY_LOCAL.buffer = previous
+    return buffer
+
+
 def _speak(text):
-    REPLIES.append({"say": text, "show": text})
+    _emit_reply({"say": text, "show": text})
 
 
 def _deliver(reply, label="reply"):
     if len(reply) <= 380:
-        REPLIES.append({"say": reply, "show": reply})
+        _emit_reply({"say": reply, "show": reply})
         return
     path = V.OUT_DIR / f"{label}_{datetime.now():%Y%m%d_%H%M%S}.txt"
     path.write_text(reply, encoding="utf-8")
     short = " ".join(re.split(r"(?<=[.!?।])\s+", V.clean_for_speech(reply))[:2])
-    REPLIES.append({"say": short + " Poora jawab screen pe hai aur outputs folder mein save hai.", "show": reply})
+    _emit_reply({"say": short + " Poora jawab screen pe hai aur outputs folder mein save hai.", "show": reply})
 
 
 V.speak = _speak
@@ -269,8 +290,9 @@ def command():
     if not text:
         return jsonify(replies=[], sleep=False)
     extra, sleep = {}, False
-    with LOCK:
-        REPLIES.clear()
+    replies = []
+    with COMMAND_LOCK:
+        REPLY_LOCAL.buffer = replies
         n = V.norm(text)
         try:
             if PENDING.get("close"):
@@ -303,10 +325,11 @@ def command():
             else:
                 V.reload_data()
                 sleep = V.handle(text) == "sleep"
-        except Exception as e:
-            _speak(f"Kuch gadbad hui: {e}")
-        replies = list(REPLIES)
-        REPLIES.clear()
+        except Exception:
+            logging.exception("VENOM command failed")
+            _speak("Command complete nahi ho paya. Logs folder mein error detail check kar.")
+        finally:
+            REPLY_LOCAL.buffer = None
     return jsonify(replies=replies, sleep=sleep, **extra)
 
 
@@ -323,14 +346,16 @@ def upload():
     path = UP_DIR / f"{datetime.now():%Y%m%d_%H%M%S}_{secrets.token_hex(4)}{ext}"
     f.save(path)
     LAST["path"], LAST["t"] = path, time.time()
-    with LOCK:
-        REPLIES.clear()
+    replies = []
+    with COMMAND_LOCK:
+        REPLY_LOCAL.buffer = replies
         try:
             _deliver(studio.critique_media(path, note), "review")
-        except Exception as e:
-            _speak(f"Review mein gadbad hui: {e}")
-        replies = list(REPLIES)
-        REPLIES.clear()
+        except Exception:
+            logging.exception("VENOM media review failed")
+            _speak("Review complete nahi ho paya. Logs folder mein error detail check kar.")
+        finally:
+            REPLY_LOCAL.buffer = None
     return jsonify(replies=replies)
 
 
@@ -416,14 +441,8 @@ def monitor():
     while True:
         time.sleep(20)
         try:
-            with LOCK:
-                REPLIES.clear()
-                V.check_reminders()
-                rem = list(REPLIES)
-                REPLIES.clear()
-                V.check_integrity()
-                integ = list(REPLIES)
-                REPLIES.clear()
+            rem = _capture_replies(V.check_reminders)
+            integ = _capture_replies(V.check_integrity)
             if rem or integ:
                 with ALERT_LOCK:
                     ALERTS.extend(rem + integ)
