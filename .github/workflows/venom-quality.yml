@@ -80,7 +80,7 @@ jobs:
           python -m pip install --disable-pip-version-check --target (Join-Path $runtime "Lib/site-packages") -r "dist/requirements.txt"
           & (Join-Path $runtime "python.exe") -c "import flask, requests, psutil; print('VENOM portable runtime OK')"
           Push-Location dist
-          & (Join-Path $runtime "python.exe") -c "import jarvis; client=jarvis.app.test_client(); r=client.get('/', base_url='http://127.0.0.1:8765'); assert r.status_code == 200; print('VENOM Windows HUD smoke test OK')"
+          & (Join-Path $runtime "python.exe") -c "import sys; sys.path.insert(0, '.'); import jarvis; client=jarvis.app.test_client(); r=client.get('/', base_url='http://127.0.0.1:8765'); assert r.status_code == 200; print('VENOM Windows HUD smoke test OK')"
           Pop-Location
           Compress-Archive -Path "dist/*" -DestinationPath "VENOM_FINAL.zip" -Force
       - uses: actions/upload-artifact@v4
