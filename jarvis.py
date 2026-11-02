@@ -370,7 +370,7 @@ def status():
     with ALERT_LOCK:
         alerts = list(ALERTS)
         ALERTS.clear()
-    return jsonify(stats=stats, keys=len(V.PROVIDERS), received=got, pending=pend,
+    return jsonify(stats=stats, keys=len(V.PROVIDERS), ai_providers=V.provider_status(), received=got, pending=pend,
                    leads=sum(1 for x in leads if x.get("status") == "new"),
                    queue=sum(1 for x in queue if x.get("status") in ("pending", "approved")),
                    meeting=(f"{meets[0]['title']} — {meets[0]['when']}" if meets else ""),
