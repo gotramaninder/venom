@@ -63,8 +63,13 @@ def provider_status():
             for name in names]
 
 PORTFOLIO_URL = os.getenv("PORTFOLIO_URL", "").strip()
-SIGNATURE = "Maninder\n" + (f"Portfolio: {PORTFOLIO_URL}\n" if PORTFOLIO_URL else "") + \
-            "Instagram: @manindergotra_25\nWhatsApp: +91 9712890124"
+SIGNATURE = os.getenv("VENOM_SIGNATURE", "Maninder").strip() or "Maninder"
+if PORTFOLIO_URL:
+    SIGNATURE += f"\nPortfolio: {PORTFOLIO_URL}"
+if os.getenv("VENOM_INSTAGRAM", "").strip():
+    SIGNATURE += f"\nInstagram: {os.getenv('VENOM_INSTAGRAM').strip()}"
+if os.getenv("VENOM_PUBLIC_WHATSAPP", "").strip():
+    SIGNATURE += f"\nWhatsApp: {os.getenv('VENOM_PUBLIC_WHATSAPP').strip()}"
 
 # Keep source code at the project root, and keep all changing user data separate.
 DATA_DIR = BASE / "data"
