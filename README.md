@@ -19,6 +19,7 @@
 - `BACKUP_VENOM.bat` — `.env`, `data/`, `outputs/` ka ZIP backup.
 - `4_DASHBOARD_SETUP.bat` — optional Streamlit dashboard dependencies.
 - `5_PHONE_SETUP.bat` — optional phone access.
+- `6_DESKTOP_VOICE_SETUP.bat` — optional desktop wake-word voice packages.
 - Python files — internal engine modules; inhe move/rename/delete mat karna.
 - `static/` — HUD screen.
 - `data/` — clients, payments, leads, meetings, settings, history.
@@ -39,7 +40,7 @@
 
 - `4_DASHBOARD_SETUP.bat` installs optional dashboard dependencies.
 - `5_PHONE_SETUP.bat` is for phone access; use only after local VENOM works.
-- Browser voice is part of the HUD. Desktop wake-word voice packages are separate and optional.
+- Browser voice is part of the HUD. For desktop wake-word voice, run `6_DESKTOP_VOICE_SETUP.bat` first. Only then enable optional `install_autostart.bat`.
 
 ## Free API note
 
