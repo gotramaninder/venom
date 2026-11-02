@@ -30,18 +30,37 @@ if env_file.exists():
             os.environ.setdefault(k.strip(), v.strip().strip('"'))
 
 def collect_keys(prefix):
-    return [v.strip() for k, v in sorted(os.environ.items())
-            if k.startswith(prefix) and v.strip() and "yahan" not in v]
+    # Exact env names only: GEMINI_API_KEY, GEMINI_API_KEY_2, etc.
+    return [value.strip() for name, value in sorted(os.environ.items())
+            if name == prefix or re.fullmatch(re.escape(prefix) + r"_\\d+", name)
+            if value.strip() and "yahan" not in value.lower()]
 
-# Free pehle, paid baad mein. Limit lagi to agli key/provider par apne aap chala jayega.
-# .env mein GEMINI_API_KEY, GEMINI_API_KEY_2, GROQ_API_KEY, ANTHROPIC_API_KEY (paid, optional) daal sakta hai.
-PROVIDERS = ([("gemini", k) for k in collect_keys("GEMINI_API_KEY")] +
+# Free-first automatic provider chain. Duplicate keys in one project do not multiply quota.
+PROVIDERS = ([( "gemini", k) for k in collect_keys("GEMINI_API_KEY")] +
              [("groq", k) for k in collect_keys("GROQ_API_KEY")] +
+             [("openrouter", k) for k in collect_keys("OPENROUTER_API_KEY")] +
+             [("mistral", k) for k in collect_keys("MISTRAL_API_KEY")] +
              [("claude", k) for k in collect_keys("ANTHROPIC_API_KEY")])
 G_MODEL = os.getenv("VENOM_GEMINI_MODEL", "gemini-3.8-flash")
 G_MODELS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
-GROQ_MODEL = os.getenv("VENOM_GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = os.getenv("VENOM_GROQ_MODEL", "openai/gpt-oss-120b")
+OPENROUTER_MODEL = os.getenv("VENOM_OPENROUTER_MODEL", "openrouter/free")
+MISTRAL_MODEL = os.getenv("VENOM_MISTRAL_MODEL", "mistral-small-latest")
 CLAUDE_MODEL = os.getenv("VENOM_CLAUDE_MODEL", "claude-sonnet-5-5")
+
+# Runtime-only health state; secrets are never exposed through status().
+_PROVIDER_HEALTH = {}
+_PROVIDER_COOLDOWN = {}
+
+def provider_status():
+    names = []
+    for name, _key in PROVIDERS:
+        if name not in names:
+            names.append(name)
+    return [{"provider": name, "configured": True,
+             "status": _PROVIDER_HEALTH.get(name, "ready" if time.time() >= _PROVIDER_COOLDOWN.get(name, 0) else "cooldown"),
+             "retry_in": max(0, int(_PROVIDER_COOLDOWN.get(name, 0) - time.time()))}
+            for name in names]
 
 PORTFOLIO_URL = os.getenv("PORTFOLIO_URL", "").strip()
 SIGNATURE = "Maninder\n" + (f"Portfolio: {PORTFOLIO_URL}\n" if PORTFOLIO_URL else "") + \
@@ -194,53 +213,95 @@ def call_gemini(key, system, contents, search):
 def flat(contents):
     return [{"role": "assistant" if c["role"] == "model" else "user", "content": c["parts"][0]["text"]} for c in contents]
 
-def call_groq(key, system, contents):
-    r = requests.post("https://api.groq.com/openai/v1/chat/completions",
-                      headers={"Authorization": f"Bearer {key}"},
-                      json={"model": GROQ_MODEL, "messages": [{"role": "system", "content": system}] + flat(contents)},
-                      timeout=90)
+def _compat_chat(provider, key, endpoint, model, system, contents):
+    payload = {"model": model, "messages": [{"role": "system", "content": system}] + flat(contents)}
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    if provider == "openrouter":
+        headers["HTTP-Referer"] = "https://github.com/gotramaninder/venom"
+        headers["X-Title"] = "VENOM Assistant"
+    r = requests.post(endpoint, headers=headers, json=payload, timeout=(10, 60))
     if r.status_code != 200:
-        raise RuntimeError(f"groq {r.status_code}")
-    return r.json()["choices"][0]["message"]["content"].strip()
+        raise RuntimeError(f"{provider} HTTP {r.status_code}")
+    data = r.json()
+    return (data.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()
+
+def call_groq(key, system, contents):
+    return _compat_chat("groq", key, "https://api.groq.com/openai/v1/chat/completions",
+                        GROQ_MODEL, system, contents)
+
+def call_openrouter(key, system, contents):
+    return _compat_chat("openrouter", key, "https://openrouter.ai/api/v1/chat/completions",
+                        OPENROUTER_MODEL, system, contents)
+
+def call_mistral(key, system, contents):
+    return _compat_chat("mistral", key, "https://api.mistral.ai/v1/chat/completions",
+                        MISTRAL_MODEL, system, contents)
 
 def call_claude(key, system, contents):
     r = requests.post("https://api.anthropic.com/v1/messages",
                       headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
                       json={"model": CLAUDE_MODEL, "max_tokens": 2500, "system": system, "messages": flat(contents)},
-                      timeout=90)
+                      timeout=(10, 60))
     if r.status_code != 200:
-        raise RuntimeError(f"claude {r.status_code}")
+        raise RuntimeError(f"claude HTTP {r.status_code}")
     return "".join(b.get("text", "") for b in r.json()["content"]).strip()
+
+def _cooldown(provider, error):
+    match = re.search(r"(?:HTTP\\s*)?(\\d{3})", str(error))
+    code = int(match.group(1)) if match else 0
+    if code == 429:
+        _PROVIDER_COOLDOWN[provider] = time.time() + 60
+    elif code in (401, 403):
+        _PROVIDER_COOLDOWN[provider] = time.time() + 300
+    elif code >= 500 or not code:
+        _PROVIDER_COOLDOWN[provider] = time.time() + 30
+    _PROVIDER_HEALTH[provider] = "cooldown" if provider in _PROVIDER_COOLDOWN else "error"
 
 def ask(prompt, search=False, keep=True):
     system = SYSTEM.replace("{now}", datetime.now().strftime("%A %d %B %Y, %I:%M %p"))
     contents = (history[-14:] if keep else []) + [{"role": "user", "parts": [{"text": prompt}]}]
     if not PROVIDERS:
-        return "Koi API key nahi mili. .env check kar."
+        return "Koi API key nahi mili. VENOM API setup wizard chala."
     last_err = ""
+    attempted = 0
     for prov, key in PROVIDERS:
+        if time.time() < _PROVIDER_COOLDOWN.get(prov, 0):
+            continue
+        attempted += 1
         try:
+            c2 = contents
+            if search and prov != "gemini":
+                c2 = contents[:-1] + [{"role": "user", "parts": [{"text": prompt +
+                    "\\n\\n(Note: is provider par live web search available nahi hai. Apni knowledge se jawab de aur live verification ka daawa mat kar.)"}]}]
             if prov == "gemini":
-                text = call_gemini(key, system, contents, search)
+                answer = call_gemini(key, system, contents, search)
+            elif prov == "groq":
+                answer = call_groq(key, system, c2)
+            elif prov == "openrouter":
+                answer = call_openrouter(key, system, c2)
+            elif prov == "mistral":
+                answer = call_mistral(key, system, c2)
             else:
-                c2 = contents
-                if search:
-                    c2 = contents[:-1] + [{"role": "user", "parts": [{"text": prompt +
-                         "\n\n(Note: live internet search is provider pe nahi hai. Apni purani knowledge se bol aur saaf likh "
-                         "ki ye live verify nahi hua.)"}]}]
-                text = call_groq(key, system, c2) if prov == "groq" else call_claude(key, system, c2)
-            if text:
+                answer = call_claude(key, system, c2)
+            if answer:
+                _PROVIDER_HEALTH[prov] = "online"
+                _PROVIDER_COOLDOWN.pop(prov, None)
                 if keep:
                     history.append({"role": "user", "parts": [{"text": prompt}]})
-                    history.append({"role": "model", "parts": [{"text": text}]})
+                    history.append({"role": "model", "parts": [{"text": answer}]})
                     del history[:-30]
                     HISTORY_FILE.write_text(json.dumps(history, ensure_ascii=False), encoding="utf-8")
-                return text
-        except requests.RequestException:
-            last_err = "internet"
+                return answer
+            last_err = f"{prov}: empty response"
+        except requests.RequestException as e:
+            last_err = f"{prov}: network error"
+            _cooldown(prov, e)
         except Exception as e:
-            last_err = str(e)
-    return f"Saari keys fail ho gayi ({last_err}). Limit ya internet check kar."
+            last_err = f"{prov}: {e}"
+            _cooldown(prov, e)
+    if attempted == 0:
+        return "Saare configured AI providers abhi cooldown mein hain. Thodi der baad try kar."
+    return f"AI providers abhi unavailable hain ({last_err}). Internet ya provider limits check kar; VENOM dobara try kar sakta hai."
 
 def extract_json(prompt):
     raw = ask(prompt + "\nSirf valid JSON de. Koi explanation ya backticks nahi.", keep=False)
