@@ -37,9 +37,9 @@ def collect_keys(prefix):
 
 # Free-first automatic provider chain. Duplicate keys in one project do not multiply quota.
 PROVIDERS = ([( "gemini", k) for k in collect_keys("GEMINI_API_KEY")] +
-             [("groq", k) for k in collect_keys("GROQ_API_KEY")] +
-             [("openrouter", k) for k in collect_keys("OPENROUTER_API_KEY")] +
              [("mistral", k) for k in collect_keys("MISTRAL_API_KEY")] +
+             [("openrouter", k) for k in collect_keys("OPENROUTER_API_KEY")] +
+             [("groq", k) for k in collect_keys("GROQ_API_KEY")] +
              [("claude", k) for k in collect_keys("ANTHROPIC_API_KEY")])
 G_MODEL = os.getenv("VENOM_GEMINI_MODEL", "gemini-3.8-flash")
 G_MODELS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
