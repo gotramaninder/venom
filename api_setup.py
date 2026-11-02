@@ -51,7 +51,7 @@ def main():
     print("Keys sirf is laptop ki .env file mein save hongi; GitHub par nahi.\n")
     for label, env_name, url in PROVIDERS:
         key_names = [k for k, v in values.items()
-                     if v and (k == env_name or re.fullmatch(re.escape(env_name) + r"_\\d+", k))]
+                     if v and (k == env_name or re.fullmatch(re.escape(env_name) + r"_\d+", k))]
         print(f"{label}: {len(key_names)} key(s) configured")
         action = input("  [A]dd backup key, [R]eplace first key, [N]one? [N]: ").strip().lower()
         if action not in ("a", "r"):
