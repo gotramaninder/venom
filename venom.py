@@ -76,8 +76,7 @@ for folder in (DATA_DIR, LOG_DIR, OUT_DIR):
 # One-time, safe migration from older VENOM layouts. Never overwrite existing data.
 def migrate_legacy_data():
     data_files = ("history.json", "meetings.json", "clients.json", "rates.json",
-                  "apps.json", "notes.txt", ".integrity.json", ".security_baseline.json",
-                  ".sessions.json", ".push.json", "leads.json", "queue.json",
+                  "apps.json", "notes.txt", ".sessions.json", ".push.json", "leads.json", "queue.json",
                   "briefs.json", "youtube_plan.json", "scout_config.json")
     log_files = ("venom.log", "scout.log")
     for name in data_files:
