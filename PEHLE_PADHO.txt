@@ -1,0 +1,9 @@
+VENOM - setup ke 3 kaam
+
+1. Is poore Venom folder ko apne laptop mein rakh, jaise C:\Venom (zip se Extract All kar, zip ke andar se mat chala).
+2. SETUP_VENOM.bat pe double click kar. Jo poochhe wo bhar. Key free milti hai.
+   Python nahi hoga to wo khud install karega, phir file dobara chalani padegi.
+3. Phone pe chalana ho to baad mein SETUP_PHONE.bat chala.
+
+Roz ke liye: desktop pe Venom shortcut.
+Kuch na chale to screen ka error copy karke Claude ko bhej de.
