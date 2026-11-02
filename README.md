@@ -2,38 +2,48 @@
 
 **Ek hi project. Ek hi installation. Ek hi daily start button.**
 
-## Sabse pehle
+## Bas ye steps follow karo
 
-1. Is repository ka ZIP download karke **Extract All** karo.
-2. Extracted folder ke andar `1_SETUP_VENOM.bat` double-click karo.
-3. API setup wizard mein provider dashboard khulega. Jo free keys available hain, unhe add karo.
-4. Roz VENOM chalane ke liye sirf `2_START_VENOM.bat` double-click karo.
+1. GitHub se ZIP download karo aur **Extract All** karo.
+2. Extracted folder ke andar `1_SETUP_VENOM.bat` double-click karo. Ye isolated Python environment banayega, core packages install karega aur API wizard kholega.
+3. Agar purane VENOM folder mein data/settings hain, `IMPORT_OLD_VENOM.bat` double-click karo aur purane VENOM folder ka full path paste karo. Ye existing values ko overwrite kiye bina missing `.env`, client records, leads, meetings, chat history aur outputs import karega. Purana folder untouched rahega.
+4. Agar old API settings import hui hain, `3_API_SETUP.bat` dobara chala kar missing provider keys add karo.
+5. Roz sirf `2_START_VENOM.bat` double-click karo.
 
 ## Root folder mein kya hai?
 
-- `1_SETUP_VENOM.bat` — first-time install; dobara chalane par environment repair/update.
-- `2_START_VENOM.bat` — daily start.
-- `3_API_SETUP.bat` — API keys add/change karna.
-- `jarvis.py`, `venom.py`, `scout.py`, `studio.py`, `notify.py`, `dashboard.py` — app ke internal modules; inhe move/rename mat karna.
-- `static/` — VENOM HUD screen.
-- `data/` — client records, payments, leads, meetings, settings, chat history.
+- `1_SETUP_VENOM.bat` — first-time install / repair.
+- `2_START_VENOM.bat` — daily start (HUD + Scout).
+- `3_API_SETUP.bat` — API keys add/change.
+- `IMPORT_OLD_VENOM.bat` — purane folder se private data safe import.
+- `BACKUP_VENOM.bat` — `.env`, `data/`, `outputs/` ka ZIP backup.
+- `4_DASHBOARD_SETUP.bat` — optional Streamlit dashboard dependencies.
+- `5_PHONE_SETUP.bat` — optional phone access.
+- Python files — internal engine modules; inhe move/rename/delete mat karna.
+- `static/` — HUD screen.
+- `data/` — clients, payments, leads, meetings, settings, history.
 - `logs/` — diagnostic logs.
-- `outputs/` — generated reports and uploads.
-- `.venv/` — isolated Python packages (installer creates this).
-- `.env` — private API keys and settings (installer/wizard creates this).
+- `outputs/` — generated reports and uploaded media.
+- `.venv/` — isolated Python environment, setup khud banata hai.
+- `.env` — private API keys and settings.
 
 ## Data safety
 
-- Existing JSON data from older VENOM versions is moved into `data/` automatically on first launch, without overwriting an existing destination file.
+- Importer never overwrites an existing destination file. Existing values remain safe.
+- Run `BACKUP_VENOM.bat` before major updates.
 - Do not delete `data/`, `.env`, or `outputs/` if you want to keep your records.
 - Never upload `.env` or private records to GitHub or send API keys in chat.
-- Before replacing an old installation, copy its `.env`, `data/`, and `outputs/` folders as a backup.
+- The old VENOM folder is not deleted by setup or import.
 
 ## Optional features
 
-- `4_DASHBOARD_SETUP.bat` installs the optional Streamlit business dashboard dependencies.
+- `4_DASHBOARD_SETUP.bat` installs optional dashboard dependencies.
 - `5_PHONE_SETUP.bat` is for phone access; use only after local VENOM works.
-- Browser voice is part of the HUD. Optional desktop wake-word voice packages are separate.
+- Browser voice is part of the HUD. Desktop wake-word voice packages are separate and optional.
+
+## Free API note
+
+Free model availability, account eligibility, and request quotas vary by provider and can change. Automatic fallback tries configured providers in order; it cannot guarantee uninterrupted or unlimited service.
 
 ## Troubleshooting
 
