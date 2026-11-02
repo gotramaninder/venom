@@ -1,6 +1,6 @@
 # VENOM setup
 
-Please follow the simple guide in [README.md](README.md).
+The official `VENOM_FINAL.zip` includes a portable Python runtime. Extract it, then double-click `1_SETUP_VENOM.bat`; you do not need to install Python separately. Follow [README.md](README.md) for the full guide.
 
 - First install: `1_SETUP_VENOM.bat`
 - Daily use: `2_START_VENOM.bat`
