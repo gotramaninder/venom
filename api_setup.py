@@ -25,6 +25,16 @@ def read_env():
                 values[k.strip()] = v.strip().strip('"').strip("'")
     return values, lines
 
+def has_provider_key(values):
+    for key, value in values.items():
+        if not value:
+            continue
+        for _, base, _ in PROVIDERS:
+            if key == base or re.fullmatch(re.escape(base) + r"_\d+", key):
+                return True
+    return False
+
+
 def save_env(values, lines):
     replaced = set()
     out = []
@@ -72,7 +82,7 @@ def main():
             target = f"{env_name}_{suffix}"
         values[target] = secret
         print(f"  Saved as {target} (key hidden).")
-    if not any(values.get(k) for _, k, _ in PROVIDERS):
+    if not has_provider_key(values):
         print("\nAbhi koi supported free AI key configure nahi hui.")
         return 1
     save_env(values, lines)
