@@ -32,7 +32,7 @@ if env_file.exists():
 def collect_keys(prefix):
     # Exact env names only: GEMINI_API_KEY, GEMINI_API_KEY_2, etc.
     return [value.strip() for name, value in sorted(os.environ.items())
-            if name == prefix or re.fullmatch(re.escape(prefix) + r"_\\d+", name)
+            if name == prefix or re.fullmatch(re.escape(prefix) + r"_\d+", name)
             if value.strip() and "yahan" not in value.lower()]
 
 # Free-first automatic provider chain. Duplicate keys in one project do not multiply quota.
@@ -247,7 +247,7 @@ def call_claude(key, system, contents):
     return "".join(b.get("text", "") for b in r.json()["content"]).strip()
 
 def _cooldown(provider, error):
-    match = re.search(r"(?:HTTP\\s*)?(\\d{3})", str(error))
+    match = re.search(r"(?:HTTP\s*)?(\d{3})", str(error))
     code = int(match.group(1)) if match else 0
     if code == 429:
         _PROVIDER_COOLDOWN[provider] = time.time() + 60
@@ -272,7 +272,7 @@ def ask(prompt, search=False, keep=True):
             c2 = contents
             if search and prov != "gemini":
                 c2 = contents[:-1] + [{"role": "user", "parts": [{"text": prompt +
-                    "\\n\\n(Note: is provider par live web search available nahi hai. Apni knowledge se jawab de aur live verification ka daawa mat kar.)"}]}]
+                    "\n\n(Note: is provider par live web search available nahi hai. Apni knowledge se jawab de aur live verification ka daawa mat kar.)"}]}]
             if prov == "gemini":
                 answer = call_gemini(key, system, contents, search)
             elif prov == "groq":
